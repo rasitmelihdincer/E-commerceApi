@@ -14,23 +14,19 @@ export class ProductRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   /* 
-
   {
     where: Prisma.ProductWhereInput
   }
-  
   */
 
   async list({
     where = null,
     select = null,
   }: ProductListOptions): Promise<Product[]> {
-    if (select) {
-      return this.prisma.product.findMany({
-        select,
-      });
-    }
-    return this.prisma.product.findMany();
+    return this.prisma.product.findMany({
+      where: where || undefined,
+      select: select || undefined,
+    });
   }
 
   async create(data: Prisma.ProductCreateInput): Promise<Product> {
