@@ -1,0 +1,5 @@
+{
+    "typescript.suggest.completeFunctionCalls": true,
+  "javascript.suggest.completeFunctionCalls": true
+
+}

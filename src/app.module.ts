@@ -8,25 +8,25 @@ import { ProductController } from './product/product.controller';
 import { APP_GUARD } from '@nestjs/core';
 import { CustomerModule } from './customer/customer.module';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule, QueryResolver } from 'nestjs-i18n';
+import { AuthModule } from './auth/auth.module';
 import * as path from 'path';
  
 @Module({
-  imports: [ProductModule , CustomerModule , ThrottlerModule.forRoot([{
+  imports: [ProductModule , CustomerModule , AuthModule , ThrottlerModule.forRoot([{
     ttl: 60000,
     limit: 10,
-  }]) ,     I18nModule.forRoot({
-    fallbackLanguage: 'tr',        
+  }]) ,    I18nModule.forRoot({
+    fallbackLanguage: 'en',
     loaderOptions: {
-      path: path.join(__dirname , '/i18n/'),
-      watch: true,                           
+      path: path.join(__dirname, '/i18n/'),
+      watch: true,
     },
-    loader: I18nJsonLoader,  
     resolvers: [
       { use: QueryResolver, options: ['lang'] },
       AcceptLanguageResolver,
-      ],
+    ],
+  }), AuthModule,
 
-  }),
 ],
   controllers: [AppController,],
   providers: [AppService , {

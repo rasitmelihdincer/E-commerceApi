@@ -62,7 +62,7 @@ export class CustomerService {
         return this.customerMapper.toDto(entity);
     }
 
-    async delete(id : number) : Promise<void> { 
+    async delete(id : number) : Promise<void> {
         const existing = await this.customerRepository.findById(id);
         if (!existing) {
           throw new NotFoundException('Customer not found');
@@ -77,5 +77,12 @@ export class CustomerService {
         }
         const entity = this.customerMapper.toEntity(existing);
         return this.customerMapper.toDto(entity);
+    }
+
+    async findByEmail(email: string) : Promise<CustomerEntity | null>{
+      const customer = await this.customerRepository.findByEmail(email);
+      if (!customer) return null;
+      const entity = this.customerMapper.toEntity(customer);
+      return entity;
     }
 }
