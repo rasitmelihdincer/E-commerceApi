@@ -9,7 +9,7 @@ export class SessionService {
 
   async createSession(customerId: number): Promise<string> {
     const token = randomUUID();
-    const expiresAt = addMinutes(new Date(), 10);
+    const expiresAt = addMinutes(new Date(), 60);
     await this.sessionRepository.create(customerId, token, expiresAt);
     return token;
   }
@@ -18,8 +18,8 @@ export class SessionService {
     const session = await this.sessionRepository.findByToken(token);
     if (!session) return null;
     const now = new Date();
-    if(session.expiresAt <now){
-        return null;
+    if (session.expiresAt < now) {
+      return null;
     }
     return session.customerId;
   }

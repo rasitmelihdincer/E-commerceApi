@@ -11,4 +11,3 @@ export class AppController {
     return await this.appService.getHello(lang);
   }
 }
-

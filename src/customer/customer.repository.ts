@@ -1,43 +1,69 @@
-import { Injectable } from "@nestjs/common";
-import { Customer, Prisma } from "@prisma/client";
-import { PrismaService } from "src/shared/prisma/prisma.service";
+import { Injectable } from '@nestjs/common';
+import { Customer, Prisma } from '@prisma/client';
+import { PrismaService } from 'src/shared/prisma/prisma.service';
+import { CustomerEntity } from './entities/customer.entity';
+import { CustomerMapper } from './mappers/customer.mapper';
+import { UpdateCustomerDto } from './dto/update-customer.dto';
 
 @Injectable()
 export class CustomerRepository {
-    constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) {}
 
-    async list() : Promise<Customer[]>{
-       return this.prisma.customer.findMany(); 
-    }
+  async list(): Promise<CustomerEntity[]> {
+    const customers = await this.prisma.customer.findMany({
+      include: {
+        addresses: true,
+      },
+    });
 
-    async create(data : Prisma.CustomerCreateInput) : Promise<Customer> {
-        return this.prisma.customer.create({
-            data,
-        });
-    }
+    return customers.map(CustomerMapper.toEntity);
+  }
 
-    async update(id : number , data : Prisma.CustomerUpdateInput) : Promise<Customer> {
-        return this.prisma.customer.update({
-            where: { id },
-            data,
-        });
-    }
+  async create(data: Prisma.CustomerCreateInput): Promise<CustomerEntity> {
+    const created = await this.prisma.customer.create({
+      data,
+      include: { addresses: true },
+    });
+    return CustomerMapper.toEntity(created);
+  }
 
-    async delete(id : number) : Promise<void> {
-        await this.prisma.customer.delete({
-            where: { id },
-        });
-    }
+  async update(id: number, dto: UpdateCustomerDto): Promise<CustomerEntity> {
+    const data: Prisma.CustomerUpdateInput = {};
+    if (dto.firstName !== undefined) data.firstName = dto.firstName;
+    if (dto.lastName !== undefined) data.lastName = dto.lastName;
+    if (dto.email !== undefined) data.email = dto.email;
 
-    async findById(id : number) : Promise<Customer | null> {
-        return this.prisma.customer.findUnique({
-            where: { id },
-        });
-    }
+    data.updatedAt = new Date();
 
-    async findByEmail(email : string) : Promise<Customer | null> {
-        return this.prisma.customer.findUnique({
-            where: { email },
-        });
-    }
+    const updated = await this.prisma.customer.update({
+      where: { id },
+      data,
+      include: { addresses: true },
+    });
+    return CustomerMapper.toEntity(updated);
+  }
+
+  async delete(id: number): Promise<void> {
+    await this.prisma.customer.delete({
+      where: { id },
+    });
+  }
+
+  async findById(id: number): Promise<CustomerEntity | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id },
+      include: { addresses: true },
+    });
+    if (!customer) return null;
+    return CustomerMapper.toEntity(customer);
+  }
+
+  async findByEmail(email: string): Promise<CustomerEntity | null> {
+    const customer = await this.prisma.customer.findUnique({
+      where: { email },
+      include: { addresses: true },
+    });
+    if (!customer) return null;
+    return CustomerMapper.toEntity(customer);
+  }
 }

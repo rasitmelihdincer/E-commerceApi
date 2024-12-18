@@ -14,76 +14,77 @@ datasource db {
 }
 
 model Session {
-  id          Int       @id @default(autoincrement())
-  token       String    @unique
-  customerId  Int
-  customer    Customer @relation(fields: [customerId], references: [id])
-  createdAt   DateTime  @default(now())
-  expiresAt   DateTime? 
+  id         Int       @id @default(autoincrement())
+  token      String    @unique
+  customerId Int
+  customer   Customer  @relation(fields: [customerId], references: [id])
+  createdAt  DateTime  @default(now())
+  expiresAt  DateTime?
 }
 
 model Customer {
-  id Int @id @default(autoincrement())
-  firstName String 
-  lastName String
-  email String @unique
+  id             Int       @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String    @unique
   hashedPassword String
-  createAt   DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  addresses Address[]
-  carts     Cart[]
-  Session Session[]
+  createAt       DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+  addresses      Address[]
+  carts          Cart[]
+  Session        Session[]
 }
-  model Address {
+
+model Address {
   id         Int      @id @default(autoincrement())
   customerId Int
   customer   Customer @relation(fields: [customerId], references: [id])
-
-  street     String
-  city       String
   country    String
+  city       String
+  district   String
+  street     String
   postcode   String
   createAt   DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  updatedAt  DateTime @default(now()) @updatedAt
 }
 
- model Cart {
-  id          Int       @id @default(autoincrement())
-  customerId  Int
-  customer    Customer  @relation(fields: [customerId], references: [id])
-  cartItems   CartItem[]
-  createdAt   DateTime  @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+model Cart {
+  id         Int        @id @default(autoincrement())
+  customerId Int
+  addressId  Int
+  customer   Customer   @relation(fields: [customerId], references: [id])
+  cartItems  CartItem[]
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @default(now()) @updatedAt
 }
- model CartItem {
+
+model CartItem {
   id        Int      @id @default(autoincrement())
   cartId    Int
   cart      Cart     @relation(fields: [cartId], references: [id])
   productId Int
   product   Product  @relation(fields: [productId], references: [id])
-  quantity  Int       @default(1)
-  createdAt DateTime  @default(now())
- }
- model Product {
-  id                Int      @id @default(autoincrement())
-  productName       String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id                 Int        @id @default(autoincrement())
+  productName        String
   productDescription String
-  productCategoryId Int?
-  productCategory   Category?  @relation(fields: [productCategoryId], references: [id])
-  productStock      Int      @default(0)
-  cartItems CartItem[]
-  createAt  DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
+  productCategoryId  Int?
+  productCategory    Category?  @relation(fields: [productCategoryId], references: [id])
+  productStock       Int        @default(0)
+  cartItems          CartItem[]
+  createAt           DateTime   @default(now())
+  updatedAt          DateTime   @default(now()) @updatedAt
 }
 
 model Category {
   id       Int        @id @default(autoincrement())
   name     String
   parentId Int?
-  parent   Category? @relation(name: "CategoryParent", fields: [parentId], references: [id])
+  parent   Category?  @relation(name: "CategoryParent", fields: [parentId], references: [id])
   children Category[] @relation(name: "CategoryParent")
   products Product[]
 }
-
-
-

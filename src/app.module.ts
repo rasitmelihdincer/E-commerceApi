@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { CustomerModule } from './customer/customer.module';
 import { AcceptLanguageResolver, I18nJsonLoader, I18nModule, QueryResolver } from 'nestjs-i18n';
 import { AuthModule } from './auth/auth.module';
+import { AddressModule } from './address/address.module';
 import * as path from 'path';
  
 @Module({
@@ -25,7 +26,7 @@ import * as path from 'path';
       { use: QueryResolver, options: ['lang'] },
       AcceptLanguageResolver,
     ],
-  }), AuthModule,
+  }), AuthModule, AddressModule,
 
 ],
   controllers: [AppController,],

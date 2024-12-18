@@ -35,6 +35,7 @@ export class CustomerController {
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateCustomerDto) {
     const update = await this.customerService.update(+id, dto);
+
     return {
       message: 'Customer Updated Successfully',
       customer: update,
@@ -49,8 +50,6 @@ export class CustomerController {
     };
   }
 
- 
-
   @UseGuards(AuthGuard)
   @Get('/profile')
   getProfile(@Req() req) {
@@ -62,6 +61,4 @@ export class CustomerController {
     console.log('Show', id);
     return await this.customerService.show(+id);
   }
-
-
 }
