@@ -6,7 +6,6 @@ import {
 import { CustomerDTO } from './dto/customer.dto';
 import { CustomerRepository } from './customer.repository';
 import { CustomerMapper } from './mappers/customer.mapper';
-import { Customer, Prisma } from '@prisma/client';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerEntity } from './entities/customer.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';

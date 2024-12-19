@@ -1,10 +1,9 @@
 export class ProductEntity {
-  constructor(
-    public id: number,
-    public productName: string,
-    public productDescription: string,
-    public productCategory: string,
-    public productStock: number,
-    public createAt: Date,
-  ) {}
+  id: number;
+  productName: string;
+  productDescription: string;
+  productCategoryId: number | null;
+  productStock: number;
+  createAt: Date;
+  updatedAt: Date;
 }

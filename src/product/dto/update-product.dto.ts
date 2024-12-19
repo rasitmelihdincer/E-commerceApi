@@ -10,8 +10,8 @@ export class UpdateProductDto {
   productDescription?: string;
 
   @IsOptional()
-  @IsString()
-  productCategory?: string;
+  @IsInt()
+  productCategoryId: number;
 
   @IsOptional()
   @IsInt()

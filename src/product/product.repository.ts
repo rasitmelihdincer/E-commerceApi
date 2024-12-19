@@ -1,6 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, Product } from '@prisma/client';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
+import { ProductEntity } from './entities/product.entity';
+import { ProductMapper } from './mappers/product.mapper';
+import { CreateProductDto } from './dto/create-product.dto';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 type ProductSelect = { [K in keyof Partial<Product>]: boolean };
 
@@ -19,51 +23,52 @@ export class ProductRepository {
   }
   */
 
-  async list({
-    where = null,
-    select = null,
-  }: ProductListOptions): Promise<Product[]> {
-    return this.prisma.product.findMany({
-      where: where || undefined,
-      select: select || undefined,
-    });
+  async list(): Promise<ProductEntity[]> {
+    const products = await this.prisma.product.findMany();
+    return products.map(ProductMapper.toEntity);
   }
 
-  async create(data: Prisma.ProductCreateInput): Promise<Product> {
-    return this.prisma.product.create({
-      data,
+  async create(dto: CreateProductDto): Promise<ProductEntity> {
+    const created = await this.prisma.product.create({
+      data: dto,
     });
+
+    return ProductMapper.toEntity(created);
   }
 
-  async update(id: number, data: Prisma.ProductUpdateInput): Promise<Product> {
-    return this.prisma.product.update({
-      data,
+  async update(id: number, dto: UpdateProductDto): Promise<ProductEntity> {
+    const existing = await this.prisma.product.findUnique({
       where: {
-        id,
+        id: id,
       },
     });
+    if (!existing) {
+      throw new NotFoundException('Product not found');
+    }
+
+    const updated = await this.prisma.product.update({
+      where: {
+        id: id,
+      },
+      data: dto,
+    });
+    return ProductMapper.toEntity(updated);
   }
 
   async delete(id: number): Promise<void> {
-    await this.prisma.product.delete({
-      where: {
-        id,
-      },
-    });
+    await this.prisma.product.delete({ where: { id } });
   }
 
-  async findById(id: number): Promise<Product | null> {
+  async findById(id: number): Promise<ProductEntity | null> {
+    const product = await this.prisma.product.findUnique({ where: { id } });
+    if (!product) return null;
+    return ProductMapper.toEntity(product);
+  }
+
+  async findByName(name: string): Promise<ProductEntity | null> {
     const product = await this.prisma.product.findUnique({
-      where: {
-        id,
-      },
+      where: { productName: name },
     });
-    return product || null;
-  }
-
-  async count(where?: Prisma.ProductWhereInput) {
-    return this.prisma.product.count({
-      where: where || {},
-    });
+    return product ? ProductMapper.toEntity(product) : null;
   }
 }

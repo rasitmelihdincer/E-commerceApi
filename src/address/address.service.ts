@@ -11,10 +11,6 @@ export class AddressService {
 
   async create(customerId: number, dto: CreateAddressDto) {
     const entity = await this.addressRepository.create(customerId, dto);
-    /*
-    const entity = AddressMapper.toEntity(created);
-    return AddressMapper.toDto(entity);
-    */
     return AddressMapper.toDto(entity);
   }
 

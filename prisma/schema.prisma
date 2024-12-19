@@ -70,7 +70,7 @@ model CartItem {
 
 model Product {
   id                 Int        @id @default(autoincrement())
-  productName        String
+  productName        String     @unique
   productDescription String
   productCategoryId  Int?
   productCategory    Category?  @relation(fields: [productCategoryId], references: [id])

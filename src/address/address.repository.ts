@@ -62,6 +62,6 @@ export class AddressRepository {
     const addresses = await this.prisma.address.findMany({
       where: { customerId },
     });
-    return addresses.map(AddressMapper.toEntity); // Her address'i entity'ye çevir
+    return addresses.map(AddressMapper.toEntity);
   }
 }

@@ -8,6 +8,9 @@ import {
   Post,
 } from '@nestjs/common';
 import { ProductService } from './product.service';
+import { CreateProductDto } from './dto/create-product.dto';
+import { dot } from 'node:test/reporters';
+import { UpdateProductDto } from './dto/update-product.dto';
 
 @Controller('products')
 export class ProductController {
@@ -18,11 +21,9 @@ export class ProductController {
     return await this.productService.list();
   }
 
-  // add diye eklemeye gerek yok rest standartlarina aykiri
-  // @Post('/add')
   @Post()
-  async create(@Body() body: any) {
-    const createdProduct = await this.productService.create(body);
+  async create(@Body() dto: CreateProductDto) {
+    const createdProduct = await this.productService.create(dto);
     return {
       message: 'Ürün başarılı bir şekilde eklendi',
       createdProduct,
@@ -32,24 +33,14 @@ export class ProductController {
   //!
   // @Patch('update/:id')
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() body: any) {
-    // try {
-    //   } catch (error) {
-    //     if (error instanceof NotFoundException) {
-    //       return {
-    //         message: `Ürün ID ${id} bulunamadı.`,
-    //       };
-    //     }
-    //     throw error;
-    //   }
-    const updatedProduct = await this.productService.update(+id, body);
+  async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
+    const updatedProduct = await this.productService.update(+id, dto);
     return {
       message: 'Ürün Başarılı bir şekilde güncellendi',
       updatedProduct,
     };
   }
 
-  //! @Delete('delete/:id')
   @Delete(':id')
   async delete(@Param('id') id: string) {
     const deletedProduct = await this.productService.delete(+id);
@@ -57,11 +48,10 @@ export class ProductController {
       message: 'Ürün başarılı bir şekilde silindi',
       content: deletedProduct,
     };
-
   }
 
-  @Get('/stocks')
-  async getStocks() {
-    return await this.productService.getStocks();
+  @Get(':id')
+  async get(@Param('id') id: string) {
+    return this.productService.getById(+id);
   }
 }
