@@ -12,8 +12,20 @@ export class CategoryRepository {
   constructor(private readonly prismaService: PrismaService) {}
 
   async list(): Promise<CategoryEntity[]> {
-    const categories = await this.prismaService.category.findMany();
-    return categories.map(CategoryMapper.toEntity);
+    const categories = await this.prismaService.category.findMany({
+      include: {
+        _count: {
+          select: { products: true },
+        },
+        parent: true,
+      },
+    });
+
+    return categories.map((cat) => {
+      const entity = CategoryMapper.toEntity(cat);
+      (entity as any).totalProducts = cat._count.products;
+      return entity;
+    });
   }
 
   async create(dto: CreateCategoryDto): Promise<CategoryEntity> {
@@ -47,11 +59,20 @@ export class CategoryRepository {
   }
 
   async delete(id: number): Promise<void> {
-    await this.prismaService.category.delete({
-      where: {
-        id,
-      },
+    const existingCategory = await this.prismaService.category.findUnique({
+      where: { id },
+      include: { products: true },
     });
+
+    if (!existingCategory) {
+      throw new Error('Category not found');
+    }
+
+    if (existingCategory.products && existingCategory.products.length > 0) {
+      throw new Error('Bu kategori altında ürünler olduğu için silinemez');
+    }
+
+    await this.prismaService.category.delete({ where: { id } });
   }
 
   async findById(id: number): Promise<CategoryEntity | null> {

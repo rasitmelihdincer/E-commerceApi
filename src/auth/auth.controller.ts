@@ -1,30 +1,45 @@
-import { Body, Controller, Post , Headers, UnauthorizedException } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Post,
+  Headers,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
 import { CreateCustomerDto } from 'src/customer/dto/create-customer.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService : AuthService){}
+  constructor(private readonly authService: AuthService) {}
 
-    @Post('register')
-    async register(@Body() dto: CreateCustomerDto) {
-        const user = await this.authService.register(dto)
-        return { 
-            message : 'User registered successfully',
-            user
-        }
+  @Post('register')
+  async register(@Body() dto: CreateCustomerDto) {
+    const user = await this.authService.register(dto);
+    return {
+      message: 'User registered successfully',
+      user,
+    };
+  }
+
+  @Post('login')
+  async login(@Body() { email, password }: LoginDto) {
+    const token = await this.authService.login(email, password);
+    return { access_token: token };
+  }
+
+  @Post('logout')
+  async logout(@Headers('authorization') authorization: string) {
+    if (!authorization) {
+      throw new UnauthorizedException('No authorization header provided');
     }
 
-    @Post('login')
-    async login(@Body(){email , password} : LoginDto) {
-        const token = await this.authService.login(email, password)
-        return { access_token : token};
+    const token = authorization.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('No token found in authorization header');
     }
-    @Post('logout')
-    async logout(@Headers('x-auth-token') token: string) {
-      if (!token) throw new UnauthorizedException('No token provided');
-      await this.authService.logout(token);
-      return { message: 'Logged out successfully' };
-    }
+
+    await this.authService.logout(token);
+    return { message: 'Logged out successfully' };
+  }
 }

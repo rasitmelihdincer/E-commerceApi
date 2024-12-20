@@ -41,6 +41,7 @@ import * as path from 'path';
         AcceptLanguageResolver,
       ],
     }),
+
     AuthModule,
     AddressModule,
     CartModule,

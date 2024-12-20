@@ -72,9 +72,10 @@ model Product {
   id                 Int        @id @default(autoincrement())
   productName        String     @unique
   productDescription String
-  productCategoryId  Int?
+  productCategoryId  Int
   productCategory    Category?  @relation(fields: [productCategoryId], references: [id])
   productStock       Int        @default(0)
+  price              Decimal    @default(0.0)
   cartItems          CartItem[]
   createAt           DateTime   @default(now())
   updatedAt          DateTime   @default(now()) @updatedAt

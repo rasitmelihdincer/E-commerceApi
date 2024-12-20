@@ -4,6 +4,7 @@ export class ProductEntity {
   productDescription: string;
   productCategoryId: number | null;
   productStock: number;
+  price: number;
   createAt: Date;
   updatedAt: Date;
 }

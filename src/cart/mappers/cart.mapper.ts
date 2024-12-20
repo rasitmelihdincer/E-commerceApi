@@ -22,6 +22,7 @@ export class CartMapper {
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       productCount: entity.productCount,
+      totalPrice: entity.totalPrice,
       cartItems: entity.cartItems.map(CartItemMapper.toDto),
     };
   }

@@ -12,15 +12,15 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = request.headers['x-auth-token'];
+    const authorizationHeader = request.headers.authorization;
 
-    /*
-    test@test ---------> 72839d76-9f8b-4452-9296-f76106d61670
-    mevlut@mevlut.com ----------> 3cec6f34-2cac-463b-a1b6-10286582b177
-    */
-
-    if (!token) {
+    if (!authorizationHeader) {
       throw new UnauthorizedException('No auth token provided');
+    }
+
+    const token = authorizationHeader.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('No token found in authorization header');
     }
 
     const customerId = await this.sessionService.validateToken(token);

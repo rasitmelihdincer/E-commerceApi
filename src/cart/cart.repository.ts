@@ -29,7 +29,11 @@ export class CartRepository {
   async findCartByCustomerId(customerId: number): Promise<CartEntity | null> {
     const cart = await this.prisma.cart.findFirst({
       where: { customerId },
-      include: { cartItems: true },
+      include: {
+        cartItems: {
+          include: { product: true },
+        },
+      },
     });
     if (!cart) return null;
     return CartMapper.toEntity(cart);
@@ -47,7 +51,11 @@ export class CartRepository {
   async findCartById(id: number): Promise<CartEntity | null> {
     const cart = await this.prisma.cart.findUnique({
       where: { id },
-      include: { cartItems: true },
+      include: {
+        cartItems: {
+          include: { product: true },
+        },
+      },
     });
     if (!cart) return null;
     return CartMapper.toEntity(cart);
@@ -56,7 +64,11 @@ export class CartRepository {
   async listCartsByCustomerId(customerId: number): Promise<CartEntity[]> {
     const carts = await this.prisma.cart.findMany({
       where: { customerId },
-      include: { cartItems: true },
+      include: {
+        cartItems: {
+          include: { product: true },
+        },
+      },
     });
     return carts.map(CartMapper.toEntity);
   }
@@ -65,8 +77,19 @@ export class CartRepository {
     cartId: number,
     dto: CreateCartItemDto,
   ): Promise<CartItemEntity> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: dto.productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException(`Product not found`);
+    }
+    if (product.productStock < dto.quantity) {
+      throw new NotFoundException(`Product out of stock`);
+    }
     const existingItem = await this.prisma.cartItem.findFirst({
       where: { cartId, productId: dto.productId },
+      include: { product: true },
     });
 
     let updatedItem;
@@ -74,6 +97,7 @@ export class CartRepository {
       updatedItem = await this.prisma.cartItem.update({
         where: { id: existingItem.id },
         data: { quantity: existingItem.quantity + dto.quantity },
+        include: { product: true },
       });
       return CartItemMapper.toEntity(updatedItem);
     } else {
@@ -83,6 +107,7 @@ export class CartRepository {
           product: { connect: { id: dto.productId } },
           quantity: dto.quantity,
         },
+        include: { product: true },
       });
       return CartItemMapper.toEntity(created);
     }

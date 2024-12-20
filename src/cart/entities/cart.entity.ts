@@ -11,4 +11,11 @@ export class CartEntity {
   get productCount(): number {
     return this.cartItems.reduce((sum, item) => sum + item.quantity, 0);
   }
+
+  get totalPrice(): number {
+    return this.cartItems.reduce(
+      (sum, item) => sum + item.product.price * item.quantity,
+      0,
+    );
+  }
 }

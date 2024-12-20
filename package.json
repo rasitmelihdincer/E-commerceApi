@@ -31,7 +31,6 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "date-fns": "^4.1.0",
-    "i18n": "^0.15.1",
     "nestjs-i18n": "^10.5.0",
     "prisma": "^6.0.1",
     "reflect-metadata": "^0.2.0",
