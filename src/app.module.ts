@@ -9,6 +9,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { CustomerModule } from './customer/customer.module';
 import {
   AcceptLanguageResolver,
+  HeaderResolver,
   I18nJsonLoader,
   I18nModule,
   QueryResolver,
@@ -32,14 +33,8 @@ import * as path from 'path';
     ]),
     I18nModule.forRoot({
       fallbackLanguage: 'en',
-      loaderOptions: {
-        path: path.join(__dirname, '/i18n/'),
-        watch: true,
-      },
-      resolvers: [
-        { use: QueryResolver, options: ['lang'] },
-        AcceptLanguageResolver,
-      ],
+      loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
+      resolvers: [AcceptLanguageResolver],
     }),
 
     AuthModule,

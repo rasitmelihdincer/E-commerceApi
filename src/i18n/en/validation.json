@@ -1,0 +1,9 @@
+{
+    "NOT_STRING": "{property} must be a string",
+    "isString": "$property bir metin (string) olmalı",
+    "isNotEmpty": "$property alanı boş bırakılamaz",
+    "isInt": "$property bir tam sayı (integer) olmalı",
+    "isPositive": "$property pozitif bir sayı olmalı",
+    "isNumber": "$property sayısal bir değer olmalı"
+  }
+  

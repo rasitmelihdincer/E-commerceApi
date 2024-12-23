@@ -1,4 +1,30 @@
 {
-    "HELLO": "Merhaba"
+    "HELLO": "Merhaba",
+    "DUPLICATE_EMAIL": "Bu email adresi zaten kayıtlı!",
+    "CUSTOMER_NOT_FOUND": "Müşteri bulunamadı!",
+    "CUSTOMER_CREATED": "Müşteri başarıyla oluşturuldu!",
+    "CUSTOMER_UPDATED" : "Müşteri başarıyla güncellendi!",
+    "CUSTOMER_DELETED" : "Müşteri başarıyla silindi!",
+    "INVALID_CREDENTIALS" : "Geçersiz kimlik bilgileri!",
+    "INVALID_TOKEN": "Geçersiz token!",
+    "USER_REGISTERED" : "Kullanıcı başarıyla kaydedildi!",
+    "LOGGED_OUT": "Kullanıcı başarıyla çıkış yaptı!",
+    "NO_AUTH_HEADER" : "Kimlik doğrulama başlığı sağlanmadı!",
+    "NO_TOKEN": "Token sağlanmadı",
+    "ADDRESS_NOTFOUND": "Adres bulunamadı!",
+    "ADDRESS_CREATED" : "Adres başarıyla oluşturuldu!",
+    "ADDRESS_UPDATED" : "Adres başarıyla güncellendi!",
+    "ADDRESS_DELETED": "Adres başarıyla silindi!",
+    "CART_NOTFOUND": "Sepet bulunamadı!",
+    "CART_ITEM_NOTFOUND": "Sepet öğesi bulunamadı!",
+    "CART_ITEM_UPDATED": "Sepet öğesi başarıyla güncellendi!",
+    "CART_ITEM_REMOVED": "Sepet öğesi başarıyla silindi!",
+    "CATEGORY_NOT_FOUND": "Kategori bulunamadı!",
+    "CATEGORY_DELETED": "Kategori başarıyla silindi!",
+    "PRODUCT_EXISTS": "Ürün zaten mevcut!",
+    "PRODUCT_NOT_FOUND" : "Ürün bulunamadı!",
+    "PRODUCT_ADDED": "Ürün başarıyla eklendi!",
+    "PRODUCT_UPDATED": "Ürün başarıyla güncellendi!",
+    "PRODUCT_DELETED": "Ürün başarıyla silindi!"
 }
   

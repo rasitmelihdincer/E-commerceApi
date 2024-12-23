@@ -1,5 +1,6 @@
 import { Product } from '@prisma/client';
 import { ProductEntity } from '../entities/product.entity';
+import { ProductResponseDto } from '../dto/product-response.dto';
 
 export class ProductMapper {
   static toEntity(product: Product): ProductEntity {
@@ -15,7 +16,7 @@ export class ProductMapper {
     return entity;
   }
 
-  static toDto(entity: ProductEntity): any {
+  static toDto(entity: ProductEntity): ProductResponseDto {
     return {
       id: entity.id,
       productName: entity.productName,

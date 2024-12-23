@@ -1,6 +1,8 @@
-import { ProductEntity } from 'src/product/entities/product.entity';
 import { CartItemEntity } from '../entities/cart-item.entity';
-import { CartItem, Product } from '@prisma/client';
+import { Cart, CartItem, Product } from '@prisma/client';
+import { ProductResponseDto } from 'src/product/dto/product-response.dto';
+import { ProductEntity } from 'src/product/entities/product.entity';
+import { CartItemResponseDto } from '../dto/cart-item-response.dto';
 
 export class CartItemMapper {
   static toEntity(cartItem: CartItem & { product?: Product }): CartItemEntity {
@@ -28,7 +30,7 @@ export class CartItemMapper {
     return entity;
   }
 
-  static toDto(entity: CartItemEntity): any {
+  static toDto(entity: CartItemEntity): CartItemResponseDto {
     return {
       id: entity.id,
       cartId: entity.cartId,

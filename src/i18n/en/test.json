@@ -1,4 +1,30 @@
 {
-    "HELLO": "Hello"
+    "HELLO": "Hello",
+    "DUPLICATE_EMAIL": "This email address is already registered!",
+    "CUSTOMER_NOT_FOUND": "Customer not found!",
+    "CUSTOMER_CREATED": "Customer created successfully!",
+    "CUSTOMER_UPDATED": "Customer updated successfully!",
+    "CUSTOMER_DELETED": "Customer deleted successfully!",
+    "INVALID_CREDENTIALS" : "Invalid credentials!",
+    "INVALID_TOKEN": "Invalid token!",
+    "USER_REGISTERED" : "User registered successfully!",
+    "LOGGED_OUT" : "Logged out successfully!",
+    "NO_AUTH_HEADER": "No authorization header provided!",
+    "NO_TOKEN" : "No token provided",
+    "ADDRESS_NOTFOUND" : "Address not found",
+    "ADDRESS_CREATED": "Address created successfully!",
+    "ADDRESS_UPDATED": "Address updated successfully!",
+    "ADDRESS_DELETED": "Address deleted successfully!",
+    "CART_NOTFOUND": "Cart not found!",
+    "CART_ITEM_NOTFOUND": "Cart item not found!",
+    "CART_ITEM_ADDED": "Product added to cart successfully!",
+    "CART_ITEM_UPDATED": "Cart item updated successfully!",
+    "CART_ITEM_REMOVED": "Cart item removed successfully!",
+    "CATEGORY_NOT_FOUND": "Category not found!",
+    "CATEGORY_DELETED": "Category deleted successfully!",
+    "PRODUCT_EXISTS": "Product already exists!",
+    "PRODUCT_NOT_FOUND": "Product not found!",
+    "PRODUCT_ADDED": "Product added successfully!",
+    "PRODUCT_UPDATED": "Product updated successfully!",
+    "PRODUCT_DELETED": "Product deleted successfully!"
 }
-  

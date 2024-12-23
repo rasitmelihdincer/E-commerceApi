@@ -10,10 +10,14 @@ import {
 import { CategoryService } from './category.service';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
+import { I18nService } from 'nestjs-i18n';
 
 @Controller('category')
 export class CategoryController {
-  constructor(private readonly categoryService: CategoryService) {}
+  constructor(
+    private readonly categoryService: CategoryService,
+    private readonly i18n: I18nService,
+  ) {}
 
   @Get()
   async list() {
@@ -33,8 +37,9 @@ export class CategoryController {
   @Delete(':id')
   async delete(@Param('id') id: string) {
     await this.categoryService.delete(+id);
+    const message = await this.i18n.translate('test.CATEGORY_DELETED');
     return {
-      message: 'Category deleted successfully',
+      message: message,
     };
   }
 }

@@ -10,12 +10,14 @@ import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerEntity } from './entities/customer.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import * as bcrypt from 'bcrypt';
+import { I18nService } from 'nestjs-i18n';
 
 @Injectable()
 export class CustomerService {
   constructor(
     private readonly customerRepository: CustomerRepository,
     private readonly customerMapper: CustomerMapper,
+    private readonly i18n: I18nService,
   ) {}
 
   async list(): Promise<CustomerDTO[]> {
@@ -25,7 +27,8 @@ export class CustomerService {
   async create(dto: CreateCustomerDto): Promise<CustomerDTO> {
     const existing = await this.customerRepository.findByEmail(dto.email);
     if (existing) {
-      throw new BadRequestException('Bu email adresi zaten kayıtlı');
+      const message = this.i18n.translate('test.DUPLICATE_EMAIL');
+      throw new BadRequestException(message);
     }
     const hashedPassword = await bcrypt.hash(dto.password, 10);
 
@@ -42,7 +45,8 @@ export class CustomerService {
   async update(id: number, dto: UpdateCustomerDto): Promise<CustomerDTO> {
     const existing = await this.customerRepository.findById(id);
     if (!existing) {
-      throw new NotFoundException('Customer not found');
+      const message = await this.i18n.translate('test.CUSTOMER_NOT_FOUND');
+      throw new NotFoundException(message);
     }
 
     let hashedPassword = existing.hashedPassword;
@@ -66,15 +70,17 @@ export class CustomerService {
   async delete(id: number): Promise<void> {
     const existing = await this.customerRepository.findById(id);
     if (!existing) {
-      throw new NotFoundException('Customer not found');
+      const message = await this.i18n.translate('test.CUSTOMER_NOT_FOUND');
+      throw new NotFoundException(message);
     }
     await this.customerRepository.delete(id);
   }
 
   async show(id: number): Promise<CustomerDTO> {
     const existing = await this.customerRepository.findById(id);
+    const message = await this.i18n.translate('test.CUSTOMER_NOT_FOUND');
     if (!existing) {
-      throw new NotFoundException('Customer not found');
+      throw new NotFoundException(message);
     }
     return CustomerMapper.toDto(existing);
   }

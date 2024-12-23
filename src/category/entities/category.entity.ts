@@ -4,5 +4,4 @@ export class CategoryEntity {
   parentId?: number;
   totalProducts?: number;
   parent: CategoryEntity | null;
-  children: CategoryEntity;
 }

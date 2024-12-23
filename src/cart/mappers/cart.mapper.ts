@@ -1,6 +1,7 @@
 import { CartEntity } from '../entities/cart.entity';
 import { Cart, CartItem } from '@prisma/client';
 import { CartItemMapper } from './cart-item.mapper';
+import { CartResponseDto } from '../dto/cart-response.dto';
 
 export class CartMapper {
   static toEntity(cart: Cart & { cartItems: CartItem[] }): CartEntity {
@@ -14,7 +15,7 @@ export class CartMapper {
     return entity;
   }
 
-  static toDto(entity: CartEntity): any {
+  static toDto(entity: CartEntity): CartResponseDto {
     return {
       id: entity.id,
       customerId: entity.customerId,
