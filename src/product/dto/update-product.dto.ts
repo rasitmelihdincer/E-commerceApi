@@ -1,19 +1,27 @@
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsOptional, IsInt, IsPositive } from 'class-validator';
 
 export class UpdateProductDto {
+  @ApiPropertyOptional({ description: 'Ürün adı', example: 'Akıllı Telefon' })
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'validation.isString' })
   productName?: string;
 
+  @ApiPropertyOptional({
+    description: 'Ürün açıklaması',
+    example: 'Yeni nesil akıllı telefon',
+  })
   @IsOptional()
-  @IsString()
+  @IsString({ message: 'validation.isString' })
   productDescription?: string;
 
-  @IsInt()
-  productCategoryId: number;
+  @ApiPropertyOptional({ description: "Kategori ID'si", example: 1 })
+  @IsInt({ message: 'validation.isInt' })
+  productCategoryId?: number;
 
+  @ApiPropertyOptional({ description: 'Stok adedi', example: 50 })
   @IsOptional()
-  @IsInt()
-  @IsPositive()
+  @IsInt({ message: 'validation.isInt' })
+  @IsPositive({ message: 'validation.isPositive' })
   productStock?: number;
 }

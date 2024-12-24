@@ -1,4 +1,9 @@
 {
+      "validation": {
+        "isString": "{{property}} metin olmalıdır",
+        "isInt": "{{property}} tam sayı olmalıdır",
+        "isPositive": "{{property}} pozitif bir değer olmalıdır"
+      },
     "HELLO": "Merhaba",
     "DUPLICATE_EMAIL": "Bu email adresi zaten kayıtlı!",
     "CUSTOMER_NOT_FOUND": "Müşteri bulunamadı!",

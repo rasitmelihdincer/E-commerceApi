@@ -1,4 +1,9 @@
 {
+      "validation": {
+        "isString": "{{property}} metin olmalıdır",
+        "isInt": "{{property}} tam sayı olmalıdır",
+        "isPositive": "{{property}} pozitif bir değer olmalıdır"
+      },
     "HELLO": "Hello",
     "DUPLICATE_EMAIL": "This email address is already registered!",
     "CUSTOMER_NOT_FOUND": "Customer not found!",
@@ -27,4 +32,5 @@
     "PRODUCT_ADDED": "Product added successfully!",
     "PRODUCT_UPDATED": "Product updated successfully!",
     "PRODUCT_DELETED": "Product deleted successfully!"
+
 }

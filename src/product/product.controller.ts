@@ -3,6 +3,8 @@ import {
   Controller,
   Delete,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   Patch,
   Post,
@@ -13,6 +15,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { dot } from 'node:test/reporters';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { I18nService, I18nValidationExceptionFilter } from 'nestjs-i18n';
+import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 
 @Controller('products')
 export class ProductController {
@@ -20,12 +23,19 @@ export class ProductController {
     private readonly productService: ProductService,
     private readonly i18n: I18nService,
   ) {}
-
+  @ApiOperation({ summary: 'Ürün listesini getir' })
+  @ApiResponse({
+    status: 200,
+    description: 'Başarılı',
+    type: [CreateProductDto],
+  })
   @Get()
   async list() {
     return await this.productService.list();
   }
 
+  @ApiOperation({ summary: 'Yeni ürün oluştur' })
+  @ApiResponse({ status: 201, description: 'Ürün başarıyla oluşturuldu.' })
   @Post()
   async create(@Body() dto: CreateProductDto) {
     const createdProduct = await this.productService.create(dto);
@@ -36,8 +46,8 @@ export class ProductController {
     };
   }
 
-  //!
-  // @Patch('update/:id')
+  @ApiOperation({ summary: 'Mevcut ürünü güncelle' })
+  @ApiResponse({ status: 200, description: 'Ürün başarıyla güncellendi.' })
   @Patch(':id')
   async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     const updatedProduct = await this.productService.update(+id, dto);
@@ -48,6 +58,8 @@ export class ProductController {
     };
   }
 
+  @ApiOperation({ summary: 'Ürünü sil' })
+  @ApiResponse({ status: 200, description: 'Ürün başarıyla silindi.' })
   @Delete(':id')
   async delete(@Param('id') id: string) {
     const deletedProduct = await this.productService.delete(+id);
@@ -57,7 +69,8 @@ export class ProductController {
       content: deletedProduct,
     };
   }
-
+  @ApiOperation({ summary: 'Belirli bir ürünü getir' })
+  @ApiResponse({ status: 200, description: 'Ürün detayları.' })
   @Get(':id')
   async get(@Param('id') id: string) {
     return this.productService.getById(+id);
