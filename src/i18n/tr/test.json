@@ -4,7 +4,7 @@
         "isInt": "{{property}} tam sayı olmalıdır",
         "isPositive": "{{property}} pozitif bir değer olmalıdır"
       },
-    "HELLO": "Merhaba",
+    "HELLO": "Abi niyaban le123123",
     "DUPLICATE_EMAIL": "Bu email adresi zaten kayıtlı!",
     "CUSTOMER_NOT_FOUND": "Müşteri bulunamadı!",
     "CUSTOMER_CREATED": "Müşteri başarıyla oluşturuldu!",

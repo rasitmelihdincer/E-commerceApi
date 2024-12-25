@@ -1,7 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { SessionService } from './session/session.service';
 import { CustomerRepository } from 'src/customer/customer.repository';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { CustomerService } from 'src/customer/customer.service';
 import { CreateCustomerDto } from 'src/customer/dto/create-customer.dto';
 import { CustomerDTO } from 'src/customer/dto/customer.dto';

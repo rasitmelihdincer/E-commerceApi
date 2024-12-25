@@ -9,7 +9,7 @@ import { CustomerMapper } from './mappers/customer.mapper';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
 import { CustomerEntity } from './entities/customer.entity';
 import { CreateCustomerDto } from './dto/create-customer.dto';
-import * as bcrypt from 'bcrypt';
+import * as bcrypt from 'bcryptjs';
 import { I18nService } from 'nestjs-i18n';
 
 @Injectable()

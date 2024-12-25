@@ -28,7 +28,7 @@ import * as path from 'path';
     ThrottlerModule.forRoot([
       {
         ttl: 60000,
-        limit: 10,
+        limit: 120,
       },
     ]),
     I18nModule.forRoot({

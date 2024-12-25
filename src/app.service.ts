@@ -6,6 +6,6 @@ export class AppService {
   constructor(private readonly i18n: I18nService) {}
 
   getHello(): string {
-    return this.i18n.t('test.HELLO');
+    return 'Hello World!123121231233';
   }
 }

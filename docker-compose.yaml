@@ -1,0 +1,36 @@
+services:
+  database:
+    image: mysql:8.0
+    ports:
+      - 3306:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: TvSH8StzY0o60P1I6r45Ul17CVP9dN8x1r
+      MYSQL_DATABASE: e_commerce
+      MYSQL_USER: e_commerce
+      MYSQL_PASSWORD: yY9Bk3UWgOzkhL2w1qsRf1H69U0CmJn1Uj
+    volumes:
+      - ./database:/var/lib/mysql
+    restart:
+      always
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - 8080:80
+    environment:
+      PMA_HOST: database
+      PMA_USER: e_commerce
+      PMA_PASSWORD: yY9Bk3UWgOzkhL2w1qsRf1H69U0CmJn1Uj
+      UPLOAD_LIMIT: 50M
+    depends_on:
+      - database
+
+  redis:
+    image: redis
+    ports:
+      - 6379:6379
+    command: redis-server --save 20 1 --loglevel warning --requirepass eYVX7EwVmmxKPCDmwMtyKVge8oLd2t81
+    volumes:
+      - redis:/data
+volumes:
+  database:
+  redis:

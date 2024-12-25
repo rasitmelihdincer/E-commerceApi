@@ -7,6 +7,6 @@ export class AppController {
 
   @Get()
   async getHello(@I18n() i18n: I18nContext) {
-    return await i18n.t('test.HELLO');
+    return this.appService.getHello();
   }
 }
