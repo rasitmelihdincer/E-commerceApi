@@ -11,7 +11,7 @@ generator client {
 
 datasource db {
   provider = "mysql"
-  url      = "mysql://e_commerce:yY9Bk3UWgOzkhL2w1qsRf1H69U0CmJn1Uj@database:3306/e_commerce"
+  url      = env("DATABASE_URL")
 }
 
 model Session {

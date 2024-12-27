@@ -19,6 +19,8 @@ import { AddressModule } from './address/address.module';
 import { CartModule } from './cart/cart.module';
 import { CategoryModule } from './category/category.module';
 import * as path from 'path';
+import { ConfigModule } from '@nestjs/config';
+import { RedisModule } from './shared/redis/redis.module';
 
 @Module({
   imports: [
@@ -41,6 +43,8 @@ import * as path from 'path';
     AddressModule,
     CartModule,
     CategoryModule,
+    ConfigModule.forRoot(),
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [

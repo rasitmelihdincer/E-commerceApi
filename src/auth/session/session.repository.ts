@@ -1,32 +1,50 @@
-import { Injectable } from "@nestjs/common";
-import { Session } from "@prisma/client";
-import { PrismaService } from "src/shared/prisma/prisma.service";
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Inject, Injectable } from '@nestjs/common';
+import { Cache } from 'cache-manager';
 
+export interface SessionData {
+  customerId: number;
+  createdAt: Date;
+  expiresAt: Date;
+}
 
 @Injectable()
 export class SessionRepository {
-    constructor(private readonly prisma: PrismaService) {}
-    
-    async create(customerId: number, token: string , expiresAt: Date) : Promise<Session>{
-        return this.prisma.session.create({
-            data: {
-                customerId,
-                token,
-                createdAt: new Date(),
-                expiresAt,
-            }
-        });
+  constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
+
+  async create(
+    customerId: number,
+    token: string,
+    expiresAt: Date,
+  ): Promise<SessionData> {
+    const sessionData: SessionData = {
+      customerId,
+      createdAt: new Date(),
+      expiresAt,
+    };
+
+    const ttlSeconds = Math.floor((expiresAt.getTime() - Date.now()) / 1000);
+    await this.cacheManager.set(`session_${token}`, sessionData, ttlSeconds);
+
+    return sessionData;
+  }
+
+  async findByToken(token: string): Promise<SessionData | null> {
+    const session = await this.cacheManager.get<SessionData>(
+      `session_${token}`,
+    );
+    if (!session) return null;
+
+    // Süre kontrolü
+    if (session.expiresAt < new Date()) {
+      await this.deleteByToken(token);
+      return null;
     }
 
-    async findByToken(token: string): Promise<Session | null> {
-        return this.prisma.session.findUnique({
-          where: { token },
-        });
-      }
+    return session;
+  }
 
-      async deleteByToken(token: string): Promise<void> {
-        await this.prisma.session.delete({
-          where: { token },
-        });
-      }
+  async deleteByToken(token: string): Promise<void> {
+    await this.cacheManager.del(`session_${token}`);
+  }
 }

@@ -1,37 +1,56 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
-import { SessionService } from './session/session.service';
-import { CustomerRepository } from 'src/customer/customer.repository';
-import * as bcrypt from 'bcryptjs';
 import { CustomerService } from 'src/customer/customer.service';
-import { CreateCustomerDto } from 'src/customer/dto/create-customer.dto';
-import { CustomerDTO } from 'src/customer/dto/customer.dto';
-import { I18nService } from 'nestjs-i18n';
+import { SessionService } from './session/session.service';
+import { LoginDto } from './dto/login.dto';
+import * as bcrypt from 'bcrypt';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly customerService: CustomerService,
     private readonly sessionService: SessionService,
-    private readonly i18n: I18nService,
+    private readonly jwtService: JwtService,
   ) {}
 
-  async register(dto: CreateCustomerDto): Promise<CustomerDTO> {
-    return this.customerService.create(dto);
+  async validateUser(email: string, password: string): Promise<any> {
+    const user = await this.customerService.findByEmail(email);
+    if (user && (await bcrypt.compare(password, user.hashedPassword))) {
+      const { hashedPassword, ...result } = user;
+      return result;
+    }
+    return null;
   }
 
-  async login(email: string, password: string): Promise<string> {
-    const customer = await this.customerService.findByEmail(email);
-    const message = await this.i18n.translate('test.INVALID_CREDENTIALS');
-    if (!customer) throw new UnauthorizedException(message);
+  async login(loginDto: LoginDto) {
+    const user = await this.validateUser(loginDto.email, loginDto.password);
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
 
-    const isMatch = await bcrypt.compare(password, customer.hashedPassword);
-    if (!isMatch) throw new UnauthorizedException(message);
+    const token = await this.sessionService.createSession(user.id);
 
-    const token = await this.sessionService.createSession(customer.id);
-    return token;
+    return {
+      access_token: token,
+      user,
+    };
   }
 
-  async logout(token: string): Promise<void> {
-    await this.sessionService.deleteSession(token);
+  async logout(token: string) {
+    try {
+      // Token'ı doğrula ve kullanıcı ID'sini al
+      const payload = this.jwtService.verify(token);
+
+      // Session'ı Redis'ten sil
+      await this.sessionService.deleteSession(token);
+
+      return { message: 'Logged out successfully' };
+    } catch (error) {
+      throw new UnauthorizedException('Invalid token');
+    }
+  }
+
+  async validateToken(token: string): Promise<number | null> {
+    return this.sessionService.validateToken(token);
   }
 }

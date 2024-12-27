@@ -1,12 +1,15 @@
-import { Controller, Get, Param } from '@nestjs/common';
+import { Controller, Get, UseInterceptors } from '@nestjs/common';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import { AppService } from './app.service';
-import { I18n, I18nContext, I18nLang } from 'nestjs-i18n';
+
 @Controller()
+@UseInterceptors(CacheInterceptor)
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  async getHello(@I18n() i18n: I18nContext) {
+  @CacheTTL(60) // 60 saniye cache'te tutulacak
+  getHello(): string {
     return this.appService.getHello();
   }
 }
