@@ -24,13 +24,37 @@ export class ProductRepository {
   */
 
   async list(): Promise<ProductEntity[]> {
-    const products = await this.prisma.product.findMany();
+    const products = await this.prisma.product.findMany({
+      include: {
+        images: true,
+      },
+    });
     return products.map(ProductMapper.toEntity);
   }
 
-  async create(dto: CreateProductDto): Promise<ProductEntity> {
+  async createWithImages(
+    dto: CreateProductDto,
+    imageUrls: string[],
+  ): Promise<ProductEntity> {
+    // Prisma üzerinden create
     const created = await this.prisma.product.create({
-      data: dto,
+      data: {
+        productName: dto.productName,
+        productDescription: dto.productDescription,
+        productCategoryId: dto.productCategoryId,
+        productStock: dto.productStock,
+        price: dto.price,
+        // images tablosuna çoklu insert
+        images: {
+          create: imageUrls.map((url) => ({
+            imageUrl: url,
+          })),
+        },
+      },
+      // Geri dönerken images'i de getirelim
+      include: {
+        images: true,
+      },
     });
 
     return ProductMapper.toEntity(created);

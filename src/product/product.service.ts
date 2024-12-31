@@ -9,6 +9,7 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { CategoryRepository } from 'src/category/category.repository';
 import { I18nService } from 'nestjs-i18n';
+import { ProductEntity } from './entities/product.entity';
 
 @Injectable()
 export class ProductService {
@@ -23,24 +24,11 @@ export class ProductService {
     return products.map(ProductMapper.toDto);
   }
 
-  async create(dto: CreateProductDto) {
-    const existing = await this.productRepository.findByName(dto.productName);
-    const message = await this.i18n.translate('test.PRODUCT_EXISTS');
-    if (existing) {
-      throw new BadRequestException(message);
-    }
-    if (dto.productCategoryId) {
-      const category = await this.categoryRepository.findById(
-        dto.productCategoryId,
-      );
-      const message = await this.i18n.translate('test.CATEGORY_NOT_FOUND');
-      if (!category) {
-        throw new NotFoundException(message);
-      }
-    }
-
-    const created = await this.productRepository.create(dto);
-    return ProductMapper.toDto(created);
+  async createWithImages(
+    dto: CreateProductDto,
+    imageUrls: string[],
+  ): Promise<ProductEntity> {
+    return this.productRepository.createWithImages(dto, imageUrls);
   }
 
   async update(id: number, dto: UpdateProductDto) {

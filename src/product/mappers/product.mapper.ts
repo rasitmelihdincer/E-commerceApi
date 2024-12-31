@@ -1,9 +1,12 @@
-import { Product } from '@prisma/client';
-import { ProductEntity } from '../entities/product.entity';
+import { Product, ProductImage } from '@prisma/client';
+import { ProductEntity, ProductImageEntity } from '../entities/product.entity';
 import { ProductResponseDto } from '../dto/product-response.dto';
+import { AddressMapper } from 'src/address/mappers/address.mapper';
 
 export class ProductMapper {
-  static toEntity(product: Product): ProductEntity {
+  static toEntity(
+    product: Product & { images?: ProductImage[] },
+  ): ProductEntity {
     const entity = new ProductEntity();
     entity.id = product.id;
     entity.productName = product.productName;
@@ -13,6 +16,18 @@ export class ProductMapper {
     entity.price = Number(product.price);
     entity.createAt = product.createAt;
     entity.updatedAt = product.updatedAt;
+
+    if (product.images) {
+      entity.images = product.images.map((img) => {
+        const imageEntity = new ProductImageEntity();
+        imageEntity.id = img.id;
+        imageEntity.imageUrl = img.imageUrl;
+        imageEntity.productId = img.productId;
+        imageEntity.createdAt = img.createdAt;
+        imageEntity.updatedAt = img.updatedAt;
+        return imageEntity;
+      });
+    }
     return entity;
   }
 
@@ -24,6 +39,7 @@ export class ProductMapper {
       productCategoryId: entity.productCategoryId,
       productStock: entity.productStock,
       price: entity.price,
+      images: entity.images,
       createAt: entity.createAt,
       updatedAt: entity.updatedAt,
     };

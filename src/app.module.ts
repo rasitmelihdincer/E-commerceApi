@@ -21,6 +21,7 @@ import { CategoryModule } from './category/category.module';
 import * as path from 'path';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from './shared/redis/redis.module';
+import { ServeStaticModule } from '@nestjs/serve-static';
 
 @Module({
   imports: [
@@ -38,12 +39,19 @@ import { RedisModule } from './shared/redis/redis.module';
       loaderOptions: { path: path.join(__dirname, '/i18n/'), watch: true },
       resolvers: [AcceptLanguageResolver],
     }),
+    ServeStaticModule.forRoot({
+      rootPath: path.join(__dirname, '..', 'uploads'), // /uploads klasörünü public yapıyoruz
+      serveRoot: '/uploads', // Erişim yolu: http://localhost:3000/uploads/
+    }),
 
     AuthModule,
     AddressModule,
     CartModule,
     CategoryModule,
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env.development', '.env'],
+    }),
     RedisModule,
   ],
   controllers: [AppController],

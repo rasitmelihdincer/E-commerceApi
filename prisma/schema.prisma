@@ -70,16 +70,26 @@ model CartItem {
 }
 
 model Product {
-  id                 Int        @id @default(autoincrement())
-  productName        String     @unique
+  id                 Int            @id @default(autoincrement())
+  productName        String         @unique
   productDescription String
   productCategoryId  Int
-  productCategory    Category?  @relation(fields: [productCategoryId], references: [id])
-  productStock       Int        @default(0)
-  price              Decimal    @default(0.0)
+  productCategory    Category?      @relation(fields: [productCategoryId], references: [id])
+  productStock       Int            @default(0)
+  price              Decimal        @default(0.0)
   cartItems          CartItem[]
-  createAt           DateTime   @default(now())
-  updatedAt          DateTime   @default(now()) @updatedAt
+  images             ProductImage[] // 1 - N ilişkisi
+  createAt           DateTime       @default(now())
+  updatedAt          DateTime       @default(now()) @updatedAt
+}
+
+model ProductImage {
+  id        Int      @id @default(autoincrement())
+  imageUrl  String
+  productId Int
+  product   Product  @relation(fields: [productId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Category {
