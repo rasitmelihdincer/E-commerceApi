@@ -22,6 +22,7 @@ import * as path from 'path';
 import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from './shared/redis/redis.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
+import { ProductImageModule } from './product-image/product-image.module';
 
 @Module({
   imports: [
@@ -40,10 +41,9 @@ import { ServeStaticModule } from '@nestjs/serve-static';
       resolvers: [AcceptLanguageResolver],
     }),
     ServeStaticModule.forRoot({
-      rootPath: path.join(__dirname, '..', 'uploads'), // /uploads klasörünü public yapıyoruz
-      serveRoot: '/uploads', // Erişim yolu: http://localhost:3000/uploads/
+      rootPath: path.join(__dirname, '..', 'uploads'),
+      serveRoot: '/uploads',
     }),
-
     AuthModule,
     AddressModule,
     CartModule,
@@ -53,6 +53,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
       envFilePath: ['.env.development', '.env'],
     }),
     RedisModule,
+    ProductImageModule,
   ],
   controllers: [AppController],
   providers: [

@@ -24,4 +24,9 @@ export class UpdateProductDto {
   @IsInt({ message: 'validation.isInt' })
   @IsPositive({ message: 'validation.isPositive' })
   productStock?: number;
+
+  @ApiPropertyOptional({ description: 'Ürün fiyatı', example: '99.99TL' })
+  @IsOptional()
+  @IsString({ message: 'validation.isString' })
+  price?: string;
 }

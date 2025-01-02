@@ -24,11 +24,8 @@ export class ProductService {
     return products.map(ProductMapper.toDto);
   }
 
-  async createWithImages(
-    dto: CreateProductDto,
-    imageUrls: string[],
-  ): Promise<ProductEntity> {
-    return this.productRepository.createWithImages(dto, imageUrls);
+  async create(dto: CreateProductDto): Promise<ProductEntity> {
+    return this.productRepository.create(dto);
   }
 
   async update(id: number, dto: UpdateProductDto) {

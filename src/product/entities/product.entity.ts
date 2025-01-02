@@ -1,3 +1,5 @@
+import { ProductImageEntity } from 'src/product-image/entities/product-image.entity';
+
 export class ProductEntity {
   id: number;
   productName: string;
@@ -5,14 +7,7 @@ export class ProductEntity {
   productCategoryId: number | null;
   productStock: number;
   price: number;
-  images?: ProductImageEntity[];
   createAt: Date;
   updatedAt: Date;
-}
-export class ProductImageEntity {
-  id: number;
-  imageUrl: string;
-  productId: number;
-  createdAt: Date;
-  updatedAt: Date;
+  images?: ProductImageEntity[];
 }
