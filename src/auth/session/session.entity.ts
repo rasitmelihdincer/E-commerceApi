@@ -1,6 +1,6 @@
 export class SessionEntity {
-    id: number;
-    token: string;
-    customerId: number;
-    createdAt: Date;
+  id: number;
+  token: string;
+  customerId: number;
+  createdAt: Date;
 }

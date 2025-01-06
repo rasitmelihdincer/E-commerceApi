@@ -4,18 +4,33 @@ import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { ProductEntity } from './entities/product.entity';
 import { ProductMapper } from './mappers/product.mapper';
+import { PaginationDto } from 'src/shared/dto/pagination.dto';
 
 @Injectable()
 export class ProductRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list() {
+  async list(paginationDto: PaginationDto) {
+    const { page = 1, limit = 10 } = paginationDto;
+    const skip = (page - 1) * limit;
+
+    const totalCount = await this.prisma.product.count();
+
     const products = await this.prisma.product.findMany({
+      skip,
+      take: limit,
       include: {
         images: true,
       },
     });
-    return products.map((product) => ProductMapper.toEntity(product));
+
+    // Entity mapleme
+    const data = products.map((product) => ProductMapper.toEntity(product));
+
+    return {
+      data,
+      totalCount,
+    };
   }
 
   async create(dto: CreateProductDto): Promise<ProductEntity> {

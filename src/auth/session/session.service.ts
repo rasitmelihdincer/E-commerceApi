@@ -2,6 +2,16 @@ import { Injectable } from '@nestjs/common';
 import { SessionRepository } from './session.repository';
 import { JwtService } from '@nestjs/jwt';
 import { addMinutes } from 'date-fns';
+import { v4 } from 'uuid';
+import { SessionType } from 'src/shared/enum/session-type.enum';
+
+export interface SessionPayload {
+  type: SessionType;
+  customerId?: number;
+  sessionId: string;
+  iat: number;
+  exp: number;
+}
 
 @Injectable()
 export class SessionService {
@@ -10,42 +20,69 @@ export class SessionService {
     private readonly jwtService: JwtService,
   ) {}
 
-  async createSession(customerId: number): Promise<string> {
+  async createCustomerSession(customerId: number): Promise<string> {
     const expiresAt = addMinutes(new Date(), 60);
-
+    const sessionId = v4();
     // JWT token oluştur
-    const token = this.jwtService.sign(
-      {
-        sub: customerId,
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(expiresAt.getTime() / 1000),
-      },
-      {
-        // expiresIn seçeneğini kullanmıyoruz çünkü exp zaten payload'da var
-      },
+    const payload: SessionPayload = {
+      type: SessionType.CUSTOMER,
+      customerId,
+      sessionId,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(expiresAt.getTime() / 1000),
+    };
+
+    const token = this.jwtService.sign(payload);
+    await this.sessionRepository.create(
+      sessionId,
+      SessionType.CUSTOMER,
+      expiresAt,
+      undefined,
+      customerId,
+    );
+    return token;
+  }
+  async createAdminSession(adminId: number): Promise<string> {
+    const expiresAt = addMinutes(new Date(), 60);
+    const sessionId = v4();
+
+    const payload: SessionPayload = {
+      type: SessionType.ADMIN,
+      sessionId,
+      iat: Math.floor(Date.now() / 1000),
+      exp: Math.floor(expiresAt.getTime() / 1000),
+      // ADMIN için adminId; isterseniz customerId boş bırakabilirsiniz
+    };
+
+    const token = this.jwtService.sign(payload);
+
+    await this.sessionRepository.create(
+      sessionId,
+      SessionType.ADMIN,
+      expiresAt,
+      adminId,
+      undefined,
     );
 
-    // Token'ı Redis'e kaydet
-    await this.sessionRepository.create(customerId, token, expiresAt);
     return token;
   }
 
-  async validateToken(token: string): Promise<number | null> {
+  async validateToken(token: string): Promise<SessionPayload | null> {
     try {
-      // JWT token'ı doğrula
-      const payload = this.jwtService.verify(token);
+      const payload = this.jwtService.verify<SessionPayload>(token);
+      // sessionId üzerinden Redis’ten session datasını al
+      const sessionData = await this.sessionRepository.findBySessionId(
+        payload.sessionId,
+      );
+      if (!sessionData) return null;
 
-      // Redis'ten session kontrolü
-      const session = await this.sessionRepository.findByToken(token);
-      if (!session) return null;
-
-      return payload.sub;
-    } catch (error) {
+      return payload;
+    } catch (e) {
       return null;
     }
   }
 
-  async deleteSession(token: string): Promise<void> {
-    await this.sessionRepository.deleteByToken(token);
+  async deleteSession(sessionId: string): Promise<void> {
+    await this.sessionRepository.deleteBySessionId(sessionId);
   }
 }

@@ -7,7 +7,7 @@ import { CustomerMapper } from './mappers/customer.mapper';
 import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [PrismaModule , forwardRef(() => AuthModule)],
+  imports: [PrismaModule, forwardRef(() => AuthModule)],
   controllers: [CustomerController],
   providers: [CustomerRepository, CustomerService, CustomerMapper],
   exports: [CustomerService],

@@ -26,5 +26,4 @@ export class ProductImageMapper {
     dto.updatedAt = entity.updatedAt;
     return dto;
   }
-  ß;
 }

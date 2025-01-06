@@ -10,18 +10,37 @@ import { UpdateProductDto } from './dto/update-product.dto';
 import { CategoryRepository } from 'src/category/category.repository';
 import { I18nService } from 'nestjs-i18n';
 import { ProductEntity } from './entities/product.entity';
+import { PaginationDto } from 'src/shared/dto/pagination.dto';
 
 @Injectable()
 export class ProductService {
   constructor(
     private readonly productRepository: ProductRepository,
-    private readonly categoryRepository: CategoryRepository,
     private readonly i18n: I18nService,
   ) {}
 
-  async list() {
-    const products = await this.productRepository.list();
-    return products.map(ProductMapper.toDto);
+  async list(paginationDto: PaginationDto) {
+    const { data, totalCount } =
+      await this.productRepository.list(paginationDto);
+
+    // Pagination bilgilerini hesaplayalım:
+    const { page = 1, limit = 10 } = paginationDto;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    // DTO mapleme
+    const dtoData = data.map(ProductMapper.toDto);
+
+    return {
+      data: dtoData,
+      meta: {
+        totalCount,
+        page,
+        limit,
+        totalPages,
+        hasNextPage: page < totalPages,
+        hasPrevPage: page > 1,
+      },
+    };
   }
 
   async create(dto: CreateProductDto): Promise<ProductEntity> {

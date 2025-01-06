@@ -10,7 +10,7 @@ export class PathResolver implements I18nResolver {
 
   resolve(context: ExecutionContext): string | undefined {
     const request = context.switchToHttp().getRequest();
-    const lang = request.params[this.options.pathKey]; // Path parametresindeki 'lang' anahtarını alıyoruz
+    const lang = request.params[this.options.pathKey];
     return lang;
   }
 }

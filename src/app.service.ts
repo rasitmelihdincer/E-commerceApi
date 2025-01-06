@@ -1,11 +1,18 @@
 import { Injectable } from '@nestjs/common';
-import { I18nService } from 'nestjs-i18n';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AppService {
-  constructor(private readonly i18n: I18nService) {}
+  constructor(private readonly configService: ConfigService) {}
 
   getHello(): string {
-    return 'Hello World!123121231233';
+    const port = this.configService.get<string>('PORT');
+    const databaseUrl = this.configService.get<string>('DATABASE_URL');
+    const redisHost = this.configService.get<string>('REDIS_HOST');
+
+    return `Application Configuration:
+    - Port: ${port}
+    - Database URL: ${databaseUrl}
+    - Redis Host: ${redisHost}`;
   }
 }

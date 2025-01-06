@@ -23,6 +23,7 @@ import { ConfigModule } from '@nestjs/config';
 import { RedisModule } from './shared/redis/redis.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ProductImageModule } from './product-image/product-image.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -50,10 +51,11 @@ import { ProductImageModule } from './product-image/product-image.module';
     CategoryModule,
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: ['.env.development', '.env'],
+      envFilePath: ['.env'],
     }),
     RedisModule,
     ProductImageModule,
+    AdminModule,
   ],
   controllers: [AppController],
   providers: [

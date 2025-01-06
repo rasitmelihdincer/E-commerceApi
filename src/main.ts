@@ -26,8 +26,8 @@ async function bootstrap() {
     }),
   );
 
-  //app.useGlobalFilters(new AllExceptionsFilter());
-  app.useGlobalFilters(new I18nValidationExceptionFilter());
+  app.useGlobalFilters(new AllExceptionsFilter());
+  //  app.useGlobalFilters(new I18nValidationExceptionFilter());
 
   await app.listen(process.env.PORT ?? 3000);
   console.log(`Server is running on port ${process.env.PORT ?? 3000}`);

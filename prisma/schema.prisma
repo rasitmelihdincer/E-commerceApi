@@ -14,11 +14,18 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum SessionType {
+  ADMIN
+  CUSTOMER
+}
+
 model Session {
   id         Int       @id @default(autoincrement())
   token      String    @unique
-  customerId Int
-  customer   Customer  @relation(fields: [customerId], references: [id])
+  adminId    Int?
+  customerId Int?
+  admin      Admin?    @relation(fields: [adminId], references: [id])
+  customer   Customer? @relation(fields: [customerId], references: [id])
   createdAt  DateTime  @default(now())
   expiresAt  DateTime?
 }
@@ -34,6 +41,17 @@ model Customer {
   addresses      Address[]
   carts          Cart[]
   Session        Session[]
+}
+
+model Admin {
+  id             Int       @id @default(autoincrement())
+  firstName      String
+  lastName       String
+  email          String    @unique
+  hashedPassword String
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  sessions       Session[]
 }
 
 model Address {

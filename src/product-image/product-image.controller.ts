@@ -7,6 +7,7 @@ import {
   UseInterceptors,
   UploadedFile,
   ParseIntPipe,
+  UseGuards,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
@@ -19,8 +20,10 @@ import {
   ApiConsumes,
 } from '@nestjs/swagger';
 import { ProductImageResponseDto } from './dto/product-image-response.dto';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
 
 @ApiTags('Product Images')
+@UseGuards(AuthGuard)
 @Controller('/products/:productId/images')
 export class ProductImageController {
   constructor(private readonly productImageService: ProductImageService) {}

@@ -6,36 +6,42 @@ import {
 } from '@nestjs/common';
 import { SessionService } from '../session/session.service';
 import { I18nService } from 'nestjs-i18n';
+import { SessionType } from '@prisma/client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(
-    private readonly sessionService: SessionService,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly sessionService: SessionService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const authorizationHeader = request.headers.authorization;
-    const messageNoAuth = await this.i18n.translate('test.NO_AUTH_HEADER');
-    const messageNoToken = await this.i18n.translate('test.NO_TOKEN');
-    const messageInvalidToken = await this.i18n.translate('test.INVALID_TOKEN');
+    const token = this.extractToken(request);
 
-    if (!authorizationHeader) {
-      throw new UnauthorizedException(messageNoToken);
+    const sessionData = await this.sessionService.validateToken(token);
+    if (!sessionData) {
+      throw new UnauthorizedException('Invalid token');
     }
 
-    const token = authorizationHeader.split(' ')[1];
-    if (!token) {
-      throw new UnauthorizedException(messageNoAuth);
+    const path = request.path.toLowerCase();
+
+    if (path.startsWith('/products')) {
+      if (sessionData.type !== SessionType.ADMIN) {
+        throw new UnauthorizedException('Only admins can access products');
+      }
     }
 
-    const customerId = await this.sessionService.validateToken(token);
-    if (!customerId) {
-      throw new UnauthorizedException(messageInvalidToken);
-    }
-
-    request.user = { id: customerId };
+    request.session = sessionData;
     return true;
+  }
+
+  private extractToken(request: any): string {
+    const authHeader = request.headers.authorization;
+    if (!authHeader) {
+      throw new UnauthorizedException('No auth header');
+    }
+    const token = authHeader.split(' ')[1];
+    if (!token) {
+      throw new UnauthorizedException('No token found');
+    }
+    return token;
   }
 }

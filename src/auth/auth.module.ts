@@ -10,11 +10,13 @@ import { CustomerService } from 'src/customer/customer.service';
 import { RedisModule } from 'src/shared/redis/redis.module';
 import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
+import { AdminModule } from 'src/admin/admin.module';
 
 @Module({
   imports: [
     PrismaModule,
     forwardRef(() => CustomerModule),
+    forwardRef(() => AdminModule),
     RedisModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],

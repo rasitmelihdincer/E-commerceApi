@@ -1,14 +1,14 @@
-import { Controller, Get, UseInterceptors } from '@nestjs/common';
-import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
+import { ApiTags, ApiOperation } from '@nestjs/swagger';
 
+@ApiTags('App')
 @Controller()
-@UseInterceptors(CacheInterceptor)
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @CacheTTL(60) // 60 saniye cache'te tutulacak
+  @ApiOperation({ summary: 'Get application configuration' })
   getHello(): string {
     return this.appService.getHello();
   }

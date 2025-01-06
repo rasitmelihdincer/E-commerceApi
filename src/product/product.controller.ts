@@ -6,12 +6,14 @@ import {
   Param,
   Patch,
   Post,
+  Query,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { PaginationDto } from 'src/shared/dto/pagination.dto';
 
 @ApiTags('Products')
 @Controller('products')
@@ -24,8 +26,8 @@ export class ProductController {
   @Get()
   @ApiOperation({ summary: 'Get product list' })
   @ApiResponse({ status: 200, description: 'Success' })
-  async list() {
-    return await this.productService.list();
+  async list(@Query() paginationDto: PaginationDto) {
+    return await this.productService.list(paginationDto);
   }
 
   @Post()

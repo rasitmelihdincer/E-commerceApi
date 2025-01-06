@@ -5,9 +5,10 @@ import { PrismaModule } from 'src/shared/prisma/prisma.module';
 import { ProductImageService } from './product-image.service';
 import { ProductImageController } from './product-image.controller';
 import { ProductImageRepository } from './product-image.repository';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, ConfigModule],
+  imports: [PrismaModule, ConfigModule, AuthModule],
   controllers: [ProductImageController],
   providers: [ProductImageService, ProductImageRepository],
   exports: [ProductImageService],
