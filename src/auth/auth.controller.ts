@@ -33,7 +33,7 @@ export class AuthController {
     return this.authService.logout(token, SessionType.CUSTOMER);
   }
   @Post('admin/logout')
-  @UseGuards(AuthGuard) // Tek guard
+  @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Admin logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   async adminLogout(@Headers('authorization') auth: string) {

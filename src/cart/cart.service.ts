@@ -1,70 +1,73 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { CartRepository } from './cart.repository';
-import { CartMapper } from './mappers/cart.mapper';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
-import { CartItemMapper } from './mappers/cart-item.mapper';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
-import { CartResponseDto } from './dto/cart-response.dto';
-import { CartItemResponseDto } from './dto/cart-item-response.dto';
-import { I18nService } from 'nestjs-i18n';
+import { CartMapper } from './mappers/cart.mapper';
+import { CartItemMapper } from './mappers/cart-item.mapper';
 
 @Injectable()
 export class CartService {
-  constructor(
-    private readonly cartRepository: CartRepository,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly cartRepository: CartRepository) {}
 
-  messageCartNotFound = this.i18n.translate('test.CART_NOTFOUND');
-  messageCartItemNotFound = this.i18n.translate('test.CART_ITEM_NOTFOUND');
-  async list(customerId: number): Promise<CartResponseDto[]> {
-    const carts = await this.cartRepository.listCartsByCustomerId(customerId);
-    return carts.map(CartMapper.toDto);
+  async list(customerId: number) {
+    const cart = await this.cartRepository.findCartByCustomerId(customerId);
+    return cart ? CartMapper.toDto(cart) : [];
   }
 
   async addCartItem(customerId: number, dto: CreateCartItemDto) {
+    // Önce cart'ı bul veya oluştur
     let cart = await this.cartRepository.findCartByCustomerId(customerId);
     if (!cart) {
       cart = await this.cartRepository.createCart(customerId);
     }
+
     const cartItem = await this.cartRepository.addCartItem(cart.id, dto);
     return CartItemMapper.toDto(cartItem);
   }
 
-  async updateCartItem(customerId: number, id: number, dto: UpdateCartItemDto) {
-    const cartItem = await this.cartRepository.findCartItemById(id);
+  async updateCartItem(
+    customerId: number,
+    itemId: number,
+    dto: UpdateCartItemDto,
+  ) {
+    // Önce cart item'ın bu kullanıcıya ait olduğunu kontrol et
+    const cartItem = await this.cartRepository.findCartItemById(itemId);
     if (!cartItem) {
-      throw new NotFoundException(this.messageCartNotFound);
-    }
-    const cart = await this.cartRepository.findCartById(cartItem.cartId);
-    if (!cart || cart.customerId !== customerId) {
-      throw new NotFoundException(this.messageCartNotFound);
+      throw new NotFoundException('Cart item not found');
     }
 
-    const updated = await this.cartRepository.updateCartItem(id, dto);
+    const cart = await this.cartRepository.findCartByCustomerId(customerId);
+    if (!cart || cart.id !== cartItem.cartId) {
+      throw new NotFoundException('Cart item not found');
+    }
+
+    const updated = await this.cartRepository.updateCartItem(itemId, dto);
     return CartItemMapper.toDto(updated);
   }
 
-  async deleteCartItem(customerId: number, id: number) {
-    const cartItem = await this.cartRepository.findCartItemById(id);
+  async deleteCartItem(customerId: number, itemId: number) {
+    // Önce cart item'ın bu kullanıcıya ait olduğunu kontrol et
+    const cartItem = await this.cartRepository.findCartItemById(itemId);
     if (!cartItem) {
-      throw new NotFoundException(this.messageCartItemNotFound);
+      throw new NotFoundException('Cart item not found');
     }
-    const cart = await this.cartRepository.findCartById(cartItem.cartId);
-    if (!cart || cart.customerId !== customerId) {
-      throw new NotFoundException(this.messageCartNotFound);
+
+    const cart = await this.cartRepository.findCartByCustomerId(customerId);
+    if (!cart || cart.id !== cartItem.cartId) {
+      throw new NotFoundException('Cart item not found');
     }
-    await this.cartRepository.deleteCartItem(id);
+
+    await this.cartRepository.deleteCartItem(itemId);
   }
 
-  async listCartItems(
-    customerId: number,
-    cartId: number,
-  ): Promise<CartItemResponseDto[]> {
-    const cart = await this.cartRepository.findCartById(cartId);
-    if (!cart || cart.customerId !== customerId) {
-      throw new NotFoundException(this.messageCartNotFound);
+  async listCartItems(customerId: number, cartId: number) {
+    // Önce cart'ın bu kullanıcıya ait olduğunu kontrol et
+    const cart = await this.cartRepository.findCartByCustomerId(customerId);
+    if (!cart || cart.id !== cartId) {
+      throw new NotFoundException('Cart not found');
     }
-    return cart.cartItems.map(CartItemMapper.toDto);
+
+    const items = await this.cartRepository.listCartItems(cartId);
+    return items.map((item) => CartItemMapper.toDto(item));
   }
 }

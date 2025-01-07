@@ -23,7 +23,7 @@ export class SessionService {
   async createCustomerSession(customerId: number): Promise<string> {
     const expiresAt = addMinutes(new Date(), 60);
     const sessionId = v4();
-    // JWT token oluştur
+
     const payload: SessionPayload = {
       type: SessionType.CUSTOMER,
       customerId,
@@ -70,11 +70,17 @@ export class SessionService {
   async validateToken(token: string): Promise<SessionPayload | null> {
     try {
       const payload = this.jwtService.verify<SessionPayload>(token);
-      // sessionId üzerinden Redis’ten session datasını al
+
+      // sessionId üzerinden Redis'ten session datasını al
       const sessionData = await this.sessionRepository.findBySessionId(
         payload.sessionId,
       );
-      if (!sessionData) return null;
+
+      // Session yoksa veya süresi geçmişse null dön
+      if (!sessionData || sessionData.expiresAt < new Date()) {
+        await this.deleteSession(payload.sessionId);
+        return null;
+      }
 
       return payload;
     } catch (e) {

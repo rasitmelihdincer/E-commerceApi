@@ -24,6 +24,7 @@ import { RedisModule } from './shared/redis/redis.module';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ProductImageModule } from './product-image/product-image.module';
 import { AdminModule } from './admin/admin.module';
+import { OrderModule } from './order/order.module';
 
 @Module({
   imports: [
@@ -56,6 +57,7 @@ import { AdminModule } from './admin/admin.module';
     RedisModule,
     ProductImageModule,
     AdminModule,
+    OrderModule,
   ],
   controllers: [AppController],
   providers: [

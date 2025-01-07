@@ -30,7 +30,6 @@ export class AuthService {
 
     const token = await this.sessionService.createCustomerSession(customer.id);
 
-    // hashedPassword'ü çıkar
     const { hashedPassword, ...customerData } = customer;
 
     return {
@@ -40,7 +39,6 @@ export class AuthService {
   }
 
   async adminLogin(loginDto: LoginDto) {
-    // Repository'den direkt entity'yi alalım
     const admin = await this.adminService['adminRepository'].findByEmail(
       loginDto.email,
     );
@@ -58,7 +56,6 @@ export class AuthService {
 
     const token = await this.sessionService.createAdminSession(admin.id);
 
-    // DTO'ya çevirip hashedPassword'ü çıkaralım
     const adminDto = await this.adminService.findByEmail(loginDto.email);
 
     return {

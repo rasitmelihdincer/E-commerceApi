@@ -10,6 +10,11 @@ import { UpdateAdminDto } from './dto/update-admin.dto';
 export class AdminRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async list(): Promise<AdminEntity[]> {
+    const admins = await this.prisma.admin.findMany();
+    return AdminMapper.toEntityList(admins);
+  }
+
   async create(
     dto: CreateAdminDto,
     hashedPassword: string,
@@ -23,25 +28,6 @@ export class AdminRepository {
       },
     });
     return AdminMapper.toEntity(admin);
-  }
-
-  async findByEmail(email: string): Promise<AdminEntity | null> {
-    const admin = await this.prisma.admin.findUnique({
-      where: { email },
-    });
-    return admin ? AdminMapper.toEntity(admin) : null;
-  }
-
-  async findById(id: number): Promise<AdminEntity | null> {
-    const admin = await this.prisma.admin.findUnique({
-      where: { id },
-    });
-    return admin ? AdminMapper.toEntity(admin) : null;
-  }
-
-  async list(): Promise<AdminEntity[]> {
-    const admins = await this.prisma.admin.findMany();
-    return AdminMapper.toEntityList(admins);
   }
 
   async update(
@@ -68,5 +54,19 @@ export class AdminRepository {
     await this.prisma.admin.delete({
       where: { id },
     });
+  }
+
+  async findByEmail(email: string): Promise<AdminEntity | null> {
+    const admin = await this.prisma.admin.findUnique({
+      where: { email },
+    });
+    return admin ? AdminMapper.toEntity(admin) : null;
+  }
+
+  async findById(id: number): Promise<AdminEntity | null> {
+    const admin = await this.prisma.admin.findUnique({
+      where: { id },
+    });
+    return admin ? AdminMapper.toEntity(admin) : null;
   }
 }

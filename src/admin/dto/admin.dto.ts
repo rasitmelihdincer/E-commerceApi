@@ -1,9 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
 
 export class AdminDto {
-  hashedPassword(password: string, hashedPassword: any) {
-    throw new Error('Method not implemented.');
-  }
   @ApiProperty({ example: 1 })
   id: number;
 
