@@ -5,6 +5,7 @@ import { SessionService } from './session/session.service';
 import { LoginDto } from './dto/login.dto';
 import { compare } from 'bcrypt';
 import { SessionType } from '@prisma/client';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class AuthService {
@@ -12,6 +13,7 @@ export class AuthService {
     private readonly customerService: CustomerService,
     private readonly adminService: AdminService,
     private readonly sessionService: SessionService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async customerLogin(loginDto: LoginDto) {
@@ -66,7 +68,12 @@ export class AuthService {
 
   async logout(token: string, type: SessionType) {
     try {
-      await this.sessionService.deleteSession(token);
+      const payload = this.jwtService.verify(token);
+      if (!payload.sessionId) {
+        throw new UnauthorizedException('Invalid token');
+      }
+
+      await this.sessionService.deleteSession(payload.sessionId);
       return { message: 'Logged out successfully' };
     } catch (error) {
       throw new UnauthorizedException('Invalid token');
@@ -74,6 +81,10 @@ export class AuthService {
   }
 
   async validateToken(token: string, type: SessionType) {
-    return this.sessionService.validateToken(token);
+    const sessionData = await this.sessionService.validateToken(token);
+    if (!sessionData || sessionData.type !== type) {
+      return null;
+    }
+    return sessionData;
   }
 }

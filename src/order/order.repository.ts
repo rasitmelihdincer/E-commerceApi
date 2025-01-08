@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { OrderEntity } from './entities/order.entity';
+import { CartItemEntity } from 'src/cart/entities/cart-item.entity';
 
 @Injectable()
 export class OrderRepository {
@@ -11,7 +12,7 @@ export class OrderRepository {
   async create(
     customerId: number,
     addressId: number,
-    cartItems: any[],
+    cartItems: CartItemEntity[],
   ): Promise<OrderEntity> {
     // Toplam fiyatı hesapla
     const totalPrice = cartItems.reduce((sum, item) => {
@@ -79,11 +80,8 @@ export class OrderRepository {
     return order ? this.mapToEntity(order) : null;
   }
 
-  async findAll(customerId: number): Promise<OrderEntity[]> {
+  async findAll(): Promise<OrderEntity[]> {
     const orders = await this.prisma.order.findMany({
-      where: {
-        customerId,
-      },
       include: {
         orderItems: true,
       },

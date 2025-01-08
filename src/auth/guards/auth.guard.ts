@@ -4,13 +4,17 @@ import {
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { SessionService } from '../session/session.service';
-import { I18nService } from 'nestjs-i18n';
+import { ROLES_KEY } from '../decorators/roles.decorator';
 import { SessionType } from '@prisma/client';
 
 @Injectable()
 export class AuthGuard implements CanActivate {
-  constructor(private readonly sessionService: SessionService) {}
+  constructor(
+    private readonly sessionService: SessionService,
+    private readonly reflector: Reflector,
+  ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -21,12 +25,15 @@ export class AuthGuard implements CanActivate {
       throw new UnauthorizedException('Invalid token');
     }
 
-    const path = request.path.toLowerCase();
+    const requiredRoles = this.reflector.getAllAndOverride<SessionType[]>(
+      ROLES_KEY,
+      [context.getHandler(), context.getClass()],
+    );
 
-    if (path.startsWith('/products')) {
-      if (sessionData.type !== SessionType.ADMIN) {
-        throw new UnauthorizedException('Only admins can access products');
-      }
+    if (requiredRoles && !requiredRoles.includes(sessionData.type)) {
+      throw new UnauthorizedException(
+        `This endpoint requires one of these roles: ${requiredRoles.join(', ')}`,
+      );
     }
 
     request.session = sessionData;

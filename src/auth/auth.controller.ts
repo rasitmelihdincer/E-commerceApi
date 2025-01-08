@@ -29,15 +29,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Customer logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   async customerLogout(@Headers('authorization') auth: string) {
-    const token = auth.replace('Bearer ', '');
+    const token = auth.split(' ')[1];
     return this.authService.logout(token, SessionType.CUSTOMER);
   }
+
   @Post('admin/logout')
   @UseGuards(AuthGuard)
   @ApiOperation({ summary: 'Admin logout' })
   @ApiResponse({ status: 200, description: 'Logout successful' })
   async adminLogout(@Headers('authorization') auth: string) {
-    const token = auth.replace('Bearer ', '');
+    const token = auth.split(' ')[1];
     return this.authService.logout(token, SessionType.ADMIN);
   }
 }

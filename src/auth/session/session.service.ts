@@ -51,7 +51,6 @@ export class SessionService {
       sessionId,
       iat: Math.floor(Date.now() / 1000),
       exp: Math.floor(expiresAt.getTime() / 1000),
-      // ADMIN için adminId; isterseniz customerId boş bırakabilirsiniz
     };
 
     const token = this.jwtService.sign(payload);
@@ -76,7 +75,6 @@ export class SessionService {
         payload.sessionId,
       );
 
-      // Session yoksa veya süresi geçmişse null dön
       if (!sessionData || sessionData.expiresAt < new Date()) {
         await this.deleteSession(payload.sessionId);
         return null;

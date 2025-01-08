@@ -15,8 +15,8 @@ import { UpdateAdminDto } from './dto/update-admin.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AdminDto } from './dto/admin.dto';
 
-@ApiTags('Admin Management')
-@Controller('admin/management')
+@ApiTags('Admin')
+@Controller('admin')
 export class AdminController {
   constructor(private readonly adminService: AdminService) {}
 
