@@ -25,6 +25,7 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { ProductImageModule } from './product-image/product-image.module';
 import { AdminModule } from './admin/admin.module';
 import { OrderModule } from './order/order.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { OrderModule } from './order/order.module';
     ProductImageModule,
     AdminModule,
     OrderModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [
