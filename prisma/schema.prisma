@@ -96,7 +96,8 @@ model Product {
   productStock       Int            @default(0)
   price              Decimal        @default(0.0)
   cartItems          CartItem[]
-  images             ProductImage[] // 1 - N ilişkisi
+  orderItems         OrderItem[]
+  images             ProductImage[]
   createAt           DateTime       @default(now())
   updatedAt          DateTime       @default(now()) @updatedAt
 }
@@ -120,15 +121,15 @@ model Category {
 }
 
 model Order {
-  id         Int      @id @default(autoincrement())
+  id         Int         @id @default(autoincrement())
   customerId Int // relation yok, sadece numeric alan
   addressId  Int // relation yok, sadece numeric alan
-  status     String   @default("PENDING")
-  totalPrice Decimal  @default(0.0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @default(now()) @updatedAt
-
-  orderItems OrderItem[] // Birden fazla ürün satırı
+  status     String      @default("PENDING")
+  totalPrice Decimal     @default(0.0)
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @default(now()) @updatedAt
+  orderItems OrderItem[]
+  payment    Payment[]
 }
 
 model OrderItem {
@@ -140,4 +141,19 @@ model OrderItem {
   createdAt DateTime @default(now())
   updatedAt DateTime @default(now()) @updatedAt
   Order     Order    @relation(fields: [orderId], references: [id])
+  product   Product  @relation(fields: [productId], references: [id])
+}
+
+model Payment {
+  id            Int      @id @default(autoincrement())
+  orderId       Int
+  order         Order    @relation(fields: [orderId], references: [id])
+  status        String // "PENDING", "COMPLETED", "FAILED", vs.
+  amount        Decimal  @default(0.0)
+  currency      String   @default("TRY")
+  installments  Int      @default(1)
+  paybullData   Json?
+  transactionId String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @default(now()) @updatedAt
 }

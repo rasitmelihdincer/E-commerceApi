@@ -3,78 +3,42 @@ import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
 
 export class Create3DDto {
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
+  @IsNumber()
+  orderId: number;
+
+  @ApiProperty()
+  @IsNotEmpty()
+  @IsString()
   cc_holder_name: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   cc_no: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   expiry_month: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   expiry_year: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   cvv: string;
 
   @ApiProperty()
-  @IsString()
   @IsNotEmpty()
+  @IsString()
   currency_code: string;
 
   @ApiProperty()
-  @IsNumber()
   @IsNotEmpty()
+  @IsNumber()
   installments_number: number;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  invoice_id: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  invoice_description: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  surname: string;
-
-  @ApiProperty()
-  @IsNumber()
-  @IsNotEmpty()
-  total: number;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  return_url: string;
-
-  @ApiProperty()
-  @IsString()
-  @IsNotEmpty()
-  cancel_url: string;
-
-  @ApiProperty()
-  @IsString()
-  items: string;
-
-  hash_key?: string;
 }

@@ -23,7 +23,6 @@ export class OrderService {
     customerId: number,
     dto: CreateOrderDto,
   ): Promise<OrderEntity> {
-    // Adresin varlığını ve müşteriye ait olduğunu kontrol et
     const address = await this.prisma.address.findFirst({
       where: {
         id: dto.addressId,

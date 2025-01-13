@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
-import { PaymentService } from './payment.service';
 import { PaymentController } from './payment.controller';
-import { PaymentFactoryService } from './providers/payment-factory.service';
+import { PaymentService } from './payment.service';
 import { PaybullProvider } from './providers/paybull/paybull.provider';
 import { ConfigModule } from '@nestjs/config';
+import { HttpModule } from '@nestjs/axios';
+import { PrismaModule } from 'src/shared/prisma/prisma.module';
+import { CartModule } from 'src/cart/cart.module';
 
 @Module({
-  imports: [ConfigModule.forRoot({ isGlobal: true })],
+  imports: [ConfigModule, PrismaModule, HttpModule, CartModule],
   controllers: [PaymentController],
-  providers: [PaymentService, PaymentFactoryService, PaybullProvider],
+  providers: [PaymentService, PaybullProvider],
   exports: [PaymentService],
 })
 export class PaymentModule {}

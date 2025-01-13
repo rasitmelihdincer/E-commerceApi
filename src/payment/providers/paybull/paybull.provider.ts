@@ -1,26 +1,27 @@
 import { ConfigService } from '@nestjs/config';
-import { IPaymentProvider } from '../payment-provider.interface';
+import {
+  IPaymentProvider,
+  PayBullRequest,
+} from '../payment-provider.interface';
 import axios from 'axios';
 import { HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { HttpException } from '@nestjs/common';
-import { Create3DDto } from '../../dto/create-payment.dto';
-import * as querystring from 'querystring';
 
 @Injectable()
 export class PaybullProvider implements IPaymentProvider {
   private readonly logger = new Logger(PaybullProvider.name);
-  private baseUrl: string;
-  private appId: string;
-  private appSecret: string;
-  private merchantKey: string;
+  private readonly baseUrl: string;
+  private readonly appId: string;
+  private readonly appSecret: string;
+  private readonly merchantKey: string;
   private token: string;
 
   private readonly paySmart3DEndpoint =
     'https://test.paybull.com/ccpayment/api/paySmart3D';
 
   constructor(private readonly configService: ConfigService) {
-    this.baseUrl = this.configService.get<string>('PAYBULL_BASE_URL');
-    this.appId = this.configService.get<string>('PAYBULL_APP_KEY');
+    this.baseUrl = this.configService.get<string>('PAYBULL_API_URL');
+    this.appId = this.configService.get<string>('PAYBULL_APP_ID');
     this.appSecret = this.configService.get<string>('PAYBULL_APP_SECRET');
     this.merchantKey = this.configService.get<string>('PAYBULL_MERCHANT_KEY');
 
@@ -90,38 +91,42 @@ export class PaybullProvider implements IPaymentProvider {
     }
   }
 
-  async create3DForm(dto: Create3DDto): Promise<any> {
-    this.logger.debug(`Creating 3D payment with data: ${JSON.stringify(dto)}`);
+  async create3DForm(data: PayBullRequest): Promise<any> {
+    this.logger.debug(`Creating 3D payment with data: ${JSON.stringify(data)}`);
 
     try {
       const token = await this.getToken();
 
-      const formData = {
-        cc_holder_name: dto.cc_holder_name,
-        cc_no: dto.cc_no,
-        expiry_month: dto.expiry_month,
-        expiry_year: dto.expiry_year,
-        cvv: dto.cvv,
-        currency_code: dto.currency_code,
-        installments_number: dto.installments_number,
-        invoice_id: dto.invoice_id,
-        invoice_description: dto.invoice_description,
-        name: dto.name,
-        surname: dto.surname,
-        total: dto.total.toFixed(2),
+      const parameters = {
+        cc_holder_name: data.cc_holder_name,
+        cc_no: data.cc_no,
+        expiry_month: data.expiry_month,
+        expiry_year: data.expiry_year,
+        cvv: data.cvv,
+        currency_code: data.currency_code,
+        installments_number: data.installments_number,
+        invoice_id: data.invoice_id,
+        invoice_description: data.invoice_description,
+        name: data.name,
+        surname: data.surname,
+        total: data.total.toFixed(2),
         merchant_key: this.merchantKey,
-        cancel_url: dto.cancel_url,
-        return_url: dto.return_url,
-        hash_key: dto.hash_key,
-        items: dto.items,
+        cancel_url: data.cancel_url,
+        return_url: data.return_url,
+        hash_key: data.hash_key,
+        items: data.items,
       };
 
       const response = await axios.post(
         this.paySmart3DEndpoint,
-        querystring.stringify(formData),
+        JSON.stringify(parameters),
         {
           headers: {
+            'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
+          },
+          validateStatus: function (status) {
+            return status >= 200 && status < 500;
           },
         },
       );
@@ -133,15 +138,12 @@ export class PaybullProvider implements IPaymentProvider {
       if (response.status !== 200) {
         return {
           success: false,
+          http_code: response.status,
           error: response.data,
-          errorCode: response.status,
         };
       }
 
-      return {
-        success: true,
-        htmlBody: response.data,
-      };
+      return response.data;
     } catch (error) {
       const errData = error?.response?.data || error.message;
       this.logger.error(
@@ -150,9 +152,39 @@ export class PaybullProvider implements IPaymentProvider {
 
       return {
         success: false,
+        http_code: error?.response?.status || 500,
         error: errData,
-        errorCode: error?.response?.status || 500,
       };
+    }
+  }
+
+  async checkPaymentStatus(invoiceId: string): Promise<any> {
+    const token = await this.getToken();
+
+    const data = {
+      invoice_id: invoiceId,
+      merchant_key: this.getMerchantKey(),
+      include_pending_status: 1,
+    };
+
+    try {
+      const response = await axios.post(
+        `${this.baseUrl}/api/checkstatus`,
+        data,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        },
+      );
+
+      return response.data;
+    } catch (error) {
+      this.logger.error(
+        `Error checking payment status for invoice ${invoiceId}: ${error.message}`,
+      );
+      throw error;
     }
   }
 }

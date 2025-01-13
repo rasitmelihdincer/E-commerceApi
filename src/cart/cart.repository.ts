@@ -103,6 +103,12 @@ export class CartRepository {
   }
 
   async deleteCartItem(id: number): Promise<void> {
+    const existing = await this.prisma.cartItem.findUnique({
+      where: { id },
+    });
+    if (!existing) {
+      return;
+    }
     await this.prisma.cartItem.delete({
       where: { id },
     });
