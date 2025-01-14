@@ -19,7 +19,6 @@ export class CartMapper {
     return {
       id: entity.id,
       customerId: entity.customerId,
-      addressId: entity.addressId,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       productCount: entity.productCount,

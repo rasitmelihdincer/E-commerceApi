@@ -41,6 +41,7 @@ model Customer {
   addresses      Address[]
   carts          Cart[]
   Session        Session[]
+  Email          Email[]
 }
 
 model Admin {
@@ -122,8 +123,8 @@ model Category {
 
 model Order {
   id         Int         @id @default(autoincrement())
-  customerId Int // relation yok, sadece numeric alan
-  addressId  Int // relation yok, sadece numeric alan
+  customerId Int
+  addressId  Int
   status     String      @default("PENDING")
   totalPrice Decimal     @default(0.0)
   createdAt  DateTime    @default(now())
@@ -148,7 +149,7 @@ model Payment {
   id            Int      @id @default(autoincrement())
   orderId       Int
   order         Order    @relation(fields: [orderId], references: [id])
-  status        String // "PENDING", "COMPLETED", "FAILED", vs.
+  status        String
   amount        Decimal  @default(0.0)
   currency      String   @default("TRY")
   installments  Int      @default(1)
@@ -156,4 +157,19 @@ model Payment {
   transactionId String?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @default(now()) @updatedAt
+}
+
+model Email {
+  id         Int       @id @default(autoincrement())
+  subject    String
+  content    String    @db.Text
+  recipient  String
+  status     String    @default("SENT")
+  type       String
+  customerId Int?
+  customer   Customer? @relation(fields: [customerId], references: [id])
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  @@index([customerId])
 }

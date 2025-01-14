@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
@@ -51,7 +55,13 @@ export class CartRepository {
       throw new NotFoundException('Product not found');
     }
 
-    // Mevcut cart item'ı kontrol et
+    // Stok kontrolü
+    if (product.productStock < dto.quantity) {
+      throw new BadRequestException(
+        `Not enough stock for product #${dto.productId}. Available: ${product.productStock}, Requested: ${dto.quantity}`,
+      );
+    }
+
     const existingItem = await this.prisma.cartItem.findFirst({
       where: {
         cartId,
@@ -61,10 +71,18 @@ export class CartRepository {
     });
 
     if (existingItem) {
+      // Toplam miktar stoktan fazla olmamalı
+      const totalQuantity = existingItem.quantity + dto.quantity;
+      if (totalQuantity > product.productStock) {
+        throw new BadRequestException(
+          `Cannot add ${dto.quantity} more items. Current cart quantity: ${existingItem.quantity}, Available stock: ${product.productStock}`,
+        );
+      }
+
       // Varsa miktarı güncelle
       const updated = await this.prisma.cartItem.update({
         where: { id: existingItem.id },
-        data: { quantity: existingItem.quantity + dto.quantity },
+        data: { quantity: totalQuantity },
         include: { product: true },
       });
       return CartItemMapper.toEntity(updated);
@@ -86,6 +104,23 @@ export class CartRepository {
     itemId: number,
     dto: UpdateCartItemDto,
   ): Promise<CartItemEntity> {
+    // Önce cart item'ı ve ürünü kontrol et
+    const cartItem = await this.prisma.cartItem.findUnique({
+      where: { id: itemId },
+      include: { product: true },
+    });
+
+    if (!cartItem) {
+      throw new NotFoundException(`Cart item #${itemId} not found`);
+    }
+
+    // Stok kontrolü
+    if (cartItem.product.productStock < dto.quantity) {
+      throw new BadRequestException(
+        `Not enough stock for product #${cartItem.productId}. Available: ${cartItem.product.productStock}, Requested: ${dto.quantity}`,
+      );
+    }
+
     const updated = await this.prisma.cartItem.update({
       where: { id: itemId },
       data: { quantity: dto.quantity },

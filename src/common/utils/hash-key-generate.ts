@@ -46,3 +46,41 @@ export function generateHashKey(
   msgEncryptedBundle = msgEncryptedBundle.replace(/\//g, '__');
   return msgEncryptedBundle;
 }
+
+/**
+ * Generates a hash key for Paybull refund API.
+ * Uses only invoice_id, merchant_key and app_secret for refund operations.
+ */
+export function generateRefundHashKey(
+  amount: number | string,
+  invoiceId: string,
+  merchantKey: string,
+  appSecret: string,
+): string {
+  const data = `${amount}|${invoiceId}|${merchantKey}`;
+
+  const random = Math.floor(100000000 + Math.random() * 900000000).toString();
+  const iv = SHA1(random).toString(enc.Hex).substring(0, 16);
+
+  const password = SHA1(appSecret).toString(enc.Hex);
+
+  const random2 = Math.floor(100000000 + Math.random() * 900000000).toString();
+  const salt = SHA1(random2).toString(enc.Hex).substring(0, 4);
+
+  const saltWithPassword = SHA256(password + salt)
+    .toString(enc.Hex)
+    .substring(0, 32);
+
+  const key = enc.Utf8.parse(saltWithPassword);
+  const ivForEncryption = enc.Utf8.parse(iv);
+
+  const encrypted = AES.encrypt(data, key, {
+    iv: ivForEncryption,
+    mode: mode.CBC,
+    padding: pad.Pkcs7,
+  });
+
+  const msgEncryptedBundle = `${iv}:${salt}:${encrypted.toString().replace(/\//g, '__')}`;
+
+  return msgEncryptedBundle;
+}

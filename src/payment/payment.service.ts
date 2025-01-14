@@ -7,13 +7,18 @@ import {
 } from '@nestjs/common';
 import { PaybullProvider } from './providers/paybull/paybull.provider';
 import { Create3DDto } from './dto/create-payment.dto';
-import { generateHashKey } from 'src/common/utils/hash-key-generate';
+import {
+  generateHashKey,
+  generateRefundHashKey,
+} from 'src/common/utils/hash-key-generate';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { CartRepository } from 'src/cart/cart.repository';
 import { PayBullRequest } from './providers/payment-provider.interface';
 import { Order, OrderItem, Payment, Product } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import axios from 'axios';
+import { MailService } from '../mail/mail.service';
 
 interface OrderWithItems extends Order {
   orderItems: OrderItem[];
@@ -27,6 +32,7 @@ export class PaymentService {
     private readonly paybullProvider: PaybullProvider,
     private readonly prisma: PrismaService,
     private readonly cartRepository: CartRepository,
+    private readonly mailService: MailService,
   ) {}
 
   async getPaybullToken(): Promise<string> {
@@ -208,7 +214,7 @@ export class PaymentService {
   }
 
   private async processSuccessfulPayment(
-    payment: Payment,
+    paymentData: Payment,
     order: OrderWithItems,
     statusResponse: any,
     resultData: any,
@@ -216,9 +222,10 @@ export class PaymentService {
     // Transaction başlat
     await this.prisma.$transaction(async (prisma) => {
       // Payment güncelle
-      if (payment) {
-        await prisma.payment.update({
-          where: { id: payment.id },
+      let updatedPayment: Payment | null = null;
+      if (paymentData) {
+        updatedPayment = await prisma.payment.update({
+          where: { id: paymentData.id },
           data: {
             status: 'COMPLETED',
             paybullData: statusResponse,
@@ -236,8 +243,20 @@ export class PaymentService {
       });
 
       // Stokları düşür
+      this.logger.debug(
+        `Payment: Found ${order.orderItems.length} items to update stock`,
+      );
+
       for (const item of order.orderItems) {
-        await prisma.product.update({
+        const currentProduct = await prisma.product.findUnique({
+          where: { id: item.productId },
+        });
+
+        this.logger.debug(
+          `Payment: Updating stock for product ${item.productId} - Current stock: ${currentProduct.productStock}, Removing: ${item.quantity}`,
+        );
+
+        const updatedProduct = await prisma.product.update({
           where: { id: item.productId },
           data: {
             productStock: {
@@ -245,11 +264,46 @@ export class PaymentService {
             },
           },
         });
+
+        this.logger.debug(
+          `Payment: Stock updated for product ${item.productId} - New stock: ${updatedProduct.productStock}`,
+        );
+      }
+
+      // Cart ve CartItems'ları temizle
+      const cart = await prisma.cart.findFirst({
+        where: { customerId: order.customerId },
+        include: { cartItems: true },
+      });
+
+      if (cart) {
+        this.logger.debug(
+          `Payment: Cleaning up cart #${cart.id} with ${cart.cartItems.length} items`,
+        );
+
+        // Önce cart items'ları sil
+        await prisma.cartItem.deleteMany({
+          where: { cartId: cart.id },
+        });
+
+        this.logger.debug(`Payment: Cart  items deleted successfully`);
+      }
+
+      // Müşteri bilgilerini al
+      const customer = await prisma.customer.findFirst({
+        where: { id: order.customerId },
+      });
+
+      // Başarılı ödeme maili gönder
+      if (customer && updatedPayment) {
+        await this.mailService.sendPaymentConfirmation(customer.email, {
+          id: updatedPayment.id,
+          amount: updatedPayment.amount,
+          orderId: order.id,
+          orderItems: order.orderItems,
+        });
       }
     });
-
-    // Sepeti temizle
-    await this.cartRepository.deleteCartItem(order.customerId);
   }
 
   private formatPaymentResponse(resultData: any, statusResponse: any) {
@@ -488,7 +542,6 @@ export class PaymentService {
         };
       }),
     );
-
     return formattedPayments;
   }
 
@@ -597,5 +650,95 @@ export class PaymentService {
         ? (completedPayments / (completedPayments + failedPayments)) * 100
         : 0,
     };
+  }
+
+  async refundPayment(paymentId: number) {
+    // 1) Payment ve Order bilgilerini al
+    const payment = await this.prisma.payment.findUnique({
+      where: { id: paymentId },
+      include: {
+        order: true,
+      },
+    });
+
+    if (!payment) {
+      throw new NotFoundException(`Payment #${paymentId} not found`);
+    }
+
+    // 2) Ödeme durumunu kontrol et
+    if (payment.status !== 'COMPLETED') {
+      throw new BadRequestException(`Payment #${paymentId} is not completed`);
+    }
+
+    try {
+      // 3) PayBull üzerinden iade işlemini gerçekleştir
+      const refundResult = await this.paybullProvider.refund(
+        Number(payment.amount),
+        payment.orderId,
+      );
+
+      // 4) İade başarılı ise kayıtları güncelle
+      await this.prisma.$transaction(async (prisma) => {
+        // Payment kaydını güncelle
+        await prisma.payment.update({
+          where: { id: paymentId },
+          data: {
+            status: 'REFUNDED',
+            paybullData: {
+              ...(payment.paybullData as Record<string, any>),
+              refund: refundResult,
+            },
+          },
+        });
+
+        // Sipariş durumunu güncelle
+        await prisma.order.update({
+          where: { id: payment.orderId },
+          data: {
+            status: 'REFUNDED',
+          },
+        });
+
+        // Stokları geri ekle
+        const orderItems = await prisma.orderItem.findMany({
+          where: { orderId: payment.orderId },
+          include: {
+            product: true,
+          },
+        });
+
+        this.logger.debug(
+          `Refund: Found ${orderItems.length} items to update stock`,
+        );
+
+        for (const item of orderItems) {
+          this.logger.debug(
+            `Refund: Updating stock for product ${item.productId} - Current stock: ${item.product.productStock}, Adding: ${item.quantity}`,
+          );
+
+          const updatedProduct = await prisma.product.update({
+            where: { id: item.productId },
+            data: {
+              productStock: {
+                increment: item.quantity,
+              },
+            },
+          });
+
+          this.logger.debug(
+            `Refund: Stock updated for product ${item.productId} - New stock: ${updatedProduct.productStock}`,
+          );
+        }
+      });
+
+      return {
+        success: true,
+        message: 'Payment refunded successfully',
+        data: refundResult,
+      };
+    } catch (error) {
+      this.logger.error(`Refund Error => ${JSON.stringify(error)}`);
+      throw new BadRequestException(error?.message || 'Refund failed');
+    }
   }
 }

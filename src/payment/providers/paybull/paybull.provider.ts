@@ -4,8 +4,14 @@ import {
   PayBullRequest,
 } from '../payment-provider.interface';
 import axios from 'axios';
-import { HttpStatus, Injectable, Logger } from '@nestjs/common';
+import {
+  HttpStatus,
+  Injectable,
+  Logger,
+  BadRequestException,
+} from '@nestjs/common';
 import { HttpException } from '@nestjs/common';
+import { generateRefundHashKey } from 'src/common/utils/hash-key-generate';
 
 @Injectable()
 export class PaybullProvider implements IPaymentProvider {
@@ -45,6 +51,14 @@ export class PaybullProvider implements IPaymentProvider {
 
   getAppSecret(): string {
     return this.appSecret;
+  }
+
+  getAppId(): string {
+    return this.appId;
+  }
+
+  getBaseUrl(): string {
+    return this.baseUrl;
   }
 
   async getToken(): Promise<string> {
@@ -185,6 +199,66 @@ export class PaybullProvider implements IPaymentProvider {
         `Error checking payment status for invoice ${invoiceId}: ${error.message}`,
       );
       throw error;
+    }
+  }
+
+  async refund(amount: number, orderId: number): Promise<any> {
+    const invoice_id = `ORDER_${orderId}`;
+
+    // Hash key oluştur
+    const hash_key = generateRefundHashKey(
+      amount,
+      invoice_id,
+      this.merchantKey,
+      this.appSecret,
+    );
+
+    try {
+      const token = await this.getToken();
+
+      // PayBull'un beklediği formatta request body hazırla
+      const parameters = {
+        amount: '', // Boş string olarak gönder
+        invoice_id,
+        hash_key,
+        app_id: this.appId,
+        app_secret: this.appSecret,
+        merchant_key: this.merchantKey,
+      };
+
+      this.logger.debug(
+        `PayBull refund request parameters: ${JSON.stringify(parameters)}`,
+      );
+
+      const response = await axios.post(
+        `${this.baseUrl}/api/refund`,
+        parameters,
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/json',
+          },
+        },
+      );
+
+      this.logger.debug(
+        `PayBull refund response: ${JSON.stringify(response.data)}`,
+      );
+
+      if (response.data.status_code === 100) {
+        return response.data;
+      }
+
+      throw new BadRequestException(
+        response.data.error_message || response.data.error || 'Refund failed',
+      );
+    } catch (error) {
+      const errData = error?.response?.data || error.message;
+      this.logger.error(`PayBull refund Error => ${JSON.stringify(errData)}`);
+      throw new BadRequestException(
+        errData?.error_message || errData?.error || errData || 'Refund failed',
+      );
     }
   }
 }

@@ -43,17 +43,6 @@ export class OrderRepository {
         data: orderItemsData,
       });
 
-      // Cart'ı temizle
-      const cart = await tx.cart.findFirst({
-        where: { customerId },
-      });
-
-      if (cart) {
-        await tx.cartItem.deleteMany({
-          where: { cartId: cart.id },
-        });
-      }
-
       // Güncel order'ı getir
       const updatedOrder = await tx.order.findUnique({
         where: { id: order.id },

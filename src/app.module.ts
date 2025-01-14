@@ -26,6 +26,7 @@ import { ProductImageModule } from './product-image/product-image.module';
 import { AdminModule } from './admin/admin.module';
 import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
+import { MailModule } from './mail/mail.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { PaymentModule } from './payment/payment.module';
     AdminModule,
     OrderModule,
     PaymentModule,
+    MailModule,
   ],
   controllers: [AppController],
   providers: [

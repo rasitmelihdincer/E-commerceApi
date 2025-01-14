@@ -16,7 +16,6 @@ import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { I18nService } from 'nestjs-i18n';
 import { SessionType } from '@prisma/client';
-
 @UseGuards(AuthGuard)
 @Controller('cart')
 export class CartController {

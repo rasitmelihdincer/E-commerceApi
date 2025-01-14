@@ -97,4 +97,13 @@ export class PaymentController {
     );
     return await this.paymentService.handlePaymentResult(queryParams, false);
   }
+
+  @Post(':id/refund')
+  @ApiOperation({ summary: 'Ödeme iadesi yap' })
+  @ApiResponse({ status: 200, description: 'İade başarıyla yapıldı' })
+  @ApiResponse({ status: 400, description: 'İade yapılamadı' })
+  @ApiResponse({ status: 404, description: 'Ödeme bulunamadı' })
+  async refundPayment(@Param('id', ParseIntPipe) id: number) {
+    return await this.paymentService.refundPayment(id);
+  }
 }
