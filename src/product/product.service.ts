@@ -23,11 +23,9 @@ export class ProductService {
     const { data, totalCount } =
       await this.productRepository.list(paginationDto);
 
-    // Pagination bilgilerini hesaplayalım:
     const { page = 1, limit = 10 } = paginationDto;
     const totalPages = Math.ceil(totalCount / limit);
 
-    // DTO mapleme
     const dtoData = data.map(ProductMapper.toDto);
 
     return {

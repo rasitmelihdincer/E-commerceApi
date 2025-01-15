@@ -134,15 +134,16 @@ model Order {
 }
 
 model OrderItem {
-  id        Int      @id @default(autoincrement())
-  orderId   Int
-  productId Int
-  quantity  Int      @default(1)
-  price     Decimal  @default(0.0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @default(now()) @updatedAt
-  Order     Order    @relation(fields: [orderId], references: [id])
-  product   Product  @relation(fields: [productId], references: [id])
+  id            Int             @id @default(autoincrement())
+  orderId       Int
+  productId     Int
+  quantity      Int             @default(1)
+  price         Decimal         @default(0.0)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @default(now()) @updatedAt
+  Order         Order           @relation(fields: [orderId], references: [id])
+  product       Product         @relation(fields: [productId], references: [id])
+  RefundRequest RefundRequest[]
 }
 
 model Payment {
@@ -159,17 +160,39 @@ model Payment {
   updatedAt     DateTime @default(now()) @updatedAt
 }
 
-model Email {
-  id         Int       @id @default(autoincrement())
-  subject    String
-  content    String    @db.Text
-  recipient  String
-  status     String    @default("SENT")
-  type       String
-  customerId Int?
-  customer   Customer? @relation(fields: [customerId], references: [id])
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
 
-  @@index([customerId])
+model Email {
+  id         Int         @id @default(autoincrement())
+  subject    String
+  content    String      @db.Text
+  recipient  String
+  type       String
+  status     EmailStatus @default(PENDING)
+  customerId Int?
+  customer   Customer?   @relation(fields: [customerId], references: [id])
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+model RefundRequest {
+  id          Int          @id @default(autoincrement())
+  orderItemId Int
+  orderItem   OrderItem    @relation(fields: [orderItemId], references: [id])
+  quantity    Int
+  description String?      @db.Text
+  status      RefundStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }

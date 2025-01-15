@@ -3,17 +3,32 @@ import { CreateCategoryDto } from './dto/create-category.dto';
 import { CategoryEntity } from './entities/category.entity';
 import { CategoryMapper } from './mappers/category.mapper';
 import { UpdateCategoryDto } from './dto/update-category.dto';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { CategoryResponseDto } from './dto/category.dto';
 import { Category, Prisma } from '@prisma/client';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Cache } from 'cache-manager';
+
+const CATEGORY_LIST_CACHE_KEY = 'categories:list';
+const CATEGORY_DETAIL_CACHE_PREFIX = 'categories:detail:';
+
 @Injectable()
 export class CategoryRepository {
-  findByName(productName: string) {
-    throw new Error('Method not implemented.');
-  }
-  constructor(private readonly prismaService: PrismaService) {}
+  constructor(
+    private readonly prismaService: PrismaService,
+    @Inject(CACHE_MANAGER) private cacheManager: Cache,
+  ) {}
 
   async list(): Promise<CategoryEntity[]> {
+    // Önce önbellekten veriyi almayı dene
+    const cachedCategories = await this.cacheManager.get<CategoryEntity[]>(
+      CATEGORY_LIST_CACHE_KEY,
+    );
+    if (cachedCategories) {
+      return cachedCategories;
+    }
+
+    // Önbellekte yoksa veritabanından getir
     const categories = await this.prismaService.category.findMany({
       include: {
         _count: { select: { products: true } },
@@ -21,7 +36,12 @@ export class CategoryRepository {
       },
     });
 
-    return categories.map(CategoryMapper.toEntity);
+    const categoryEntities = categories.map(CategoryMapper.toEntity);
+
+    // Önbelleğe kaydet
+    await this.cacheManager.set(CATEGORY_LIST_CACHE_KEY, categoryEntities);
+
+    return categoryEntities;
   }
 
   async create(
@@ -39,6 +59,10 @@ export class CategoryRepository {
         children: true,
       },
     });
+
+    // Önbelleği temizle
+    await this.invalidateCategoryCaches();
+
     return CategoryMapper.toEntity(created);
   }
 
@@ -59,14 +83,28 @@ export class CategoryRepository {
       },
     });
 
+    // Önbelleği temizle
+    await this.invalidateCategoryCaches();
+
     return CategoryMapper.toEntity(updated);
   }
 
   async delete(id: number): Promise<void> {
     await this.prismaService.category.delete({ where: { id } });
+
+    // Önbelleği temizle
+    await this.invalidateCategoryCaches();
   }
 
   async findById(id: number): Promise<CategoryEntity | null> {
+    // Önbellekten kategoriyi almayı dene
+    const cacheKey = `${CATEGORY_DETAIL_CACHE_PREFIX}${id}`;
+    const cachedCategory =
+      await this.cacheManager.get<CategoryEntity>(cacheKey);
+    if (cachedCategory) {
+      return cachedCategory;
+    }
+
     const category = await this.prismaService.category.findUnique({
       where: { id },
       include: {
@@ -78,6 +116,21 @@ export class CategoryRepository {
       },
     });
 
-    return category ? CategoryMapper.toEntity(category) : null;
+    if (!category) {
+      return null;
+    }
+
+    const categoryEntity = CategoryMapper.toEntity(category);
+
+    // Önbelleğe kaydet
+    await this.cacheManager.set(cacheKey, categoryEntity);
+
+    return categoryEntity;
+  }
+
+  private async invalidateCategoryCaches(): Promise<void> {
+    await this.cacheManager.del(CATEGORY_LIST_CACHE_KEY);
+    // Not: Gerçek ortamda, önbellekteki tekil kategori kayıtlarını temizlemek için
+    // daha gelişmiş bir yöntem kullanmak gerekebilir, örneğin önbellekteki anahtarların listesini tutmak gibi
   }
 }

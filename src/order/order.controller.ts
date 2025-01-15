@@ -16,7 +16,6 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SessionType } from '@prisma/client';
 
 @ApiTags('Orders')
-@UseGuards(AuthGuard)
 @Controller('orders')
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}

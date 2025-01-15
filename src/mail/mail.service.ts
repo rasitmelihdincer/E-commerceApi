@@ -1,12 +1,14 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Inject } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
 import { PrismaService } from '../shared/prisma/prisma.service';
+import { ClientProxy } from '@nestjs/microservices';
 
 @Injectable()
 export class MailService {
   constructor(
     private mailerService: MailerService,
     private prisma: PrismaService,
+    @Inject('MAIL_SERVICE') private mailClient: ClientProxy,
   ) {}
 
   private formatContent(content: string) {
@@ -114,7 +116,6 @@ export class MailService {
     recipient: string;
     type: string;
     customerId?: number;
-    status?: string;
   }) {
     return this.prisma.email.create({
       data: {
@@ -123,177 +124,131 @@ export class MailService {
         recipient: data.recipient,
         type: data.type,
         customerId: data.customerId,
-        status: data.status || 'SENT',
+        status: 'PENDING',
       },
     });
   }
 
-  async sendTestEmail() {
-    const subject = 'Hoş Geldiniz!';
-    const content = this.getBaseTemplate(`
-      <h2>Merhaba!</h2>
-      <p>E-Commerce Store'a hoş geldiniz. Bu bir test emailidir.</p>
-      <div class="highlight">
-        <p>🎉 Yeni üyelere özel %10 indirim fırsatını kaçırmayın!</p>
-      </div>
-      <a href="#" class="button">Alışverişe Başla</a>
-    `);
+  async sendCustomEmail(email: string, subject: string, content: string) {
+    const emailRecord = await this.trackEmail({
+      subject,
+      content,
+      recipient: email,
+      type: 'CUSTOM',
+    });
 
-    try {
-      await this.mailerService.sendMail({
-        to: 'melihdincerparacim@gmail.com',
-        subject,
-        html: content,
-      });
+    this.mailClient.emit('send_custom_email', {
+      email,
+      subject,
+      content: this.getBaseTemplate(this.formatContent(content)),
+      emailId: emailRecord.id,
+    });
 
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: 'melihdincerparacim@gmail.com',
-        type: 'TEST',
-      });
-
-      return true;
-    } catch (error) {
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: 'melihdincerparacim@gmail.com',
-        type: 'TEST',
-        status: 'FAILED',
-      });
-      throw error;
-    }
+    return emailRecord.id;
   }
 
   async sendOrderConfirmation(email: string, orderDetails: any) {
     const subject = 'Siparişiniz Onaylandı';
-    const content = this.getBaseTemplate(`
-      <h2>Siparişiniz için Teşekkürler!</h2>
-      <p>Siparişiniz başarıyla oluşturuldu.</p>
-      
-      <div class="highlight">
-        <h3>Sipariş Detayları</h3>
-        <p>Sipariş Numarası: #${orderDetails.id}</p>
-        <p>Toplam Tutar: ${orderDetails.totalPrice} TL</p>
-      </div>
+    const content = `Sipariş Numarası: #${orderDetails.id}\nToplam Tutar: ${orderDetails.totalPrice} TL`;
 
-      <p>Siparişinizin durumunu kontrol etmek için aşağıdaki butonu kullanabilirsiniz:</p>
-      <a href="#" class="button">Siparişimi Görüntüle</a>
-      
-      <p>Herhangi bir sorunuz varsa, müşteri hizmetlerimizle iletişime geçmekten çekinmeyin.</p>
-    `);
+    const emailRecord = await this.trackEmail({
+      subject,
+      content,
+      recipient: email,
+      type: 'ORDER_CONFIRMATION',
+    });
 
-    try {
-      await this.mailerService.sendMail({
-        to: email,
-        subject,
-        html: content,
-      });
+    this.mailClient.emit('send_order_confirmation', {
+      email,
+      subject,
+      content: this.getBaseTemplate(`
+        <h2>Siparişiniz için Teşekkürler!</h2>
+        <p>Siparişiniz başarıyla oluşturuldu.</p>
+        
+        <div class="highlight">
+          <h3>Sipariş Detayları</h3>
+          <p>Sipariş Numarası: #${orderDetails.id}</p>
+          <p>Toplam Tutar: ${orderDetails.totalPrice} TL</p>
+        </div>
 
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: email,
-        type: 'ORDER_CONFIRMATION',
-      });
-    } catch (error) {
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: email,
-        type: 'ORDER_CONFIRMATION',
-        status: 'FAILED',
-      });
-      throw error;
-    }
+        <p>Siparişinizin durumunu kontrol etmek için aşağıdaki butonu kullanabilirsiniz:</p>
+        <a href="#" class="button">Siparişimi Görüntüle</a>
+        
+        <p>Herhangi bir sorunuz varsa, müşteri hizmetlerimizle iletişime geçmekten çekinmeyin.</p>
+      `),
+      emailId: emailRecord.id,
+    });
+
+    return emailRecord.id;
   }
 
   async sendPaymentConfirmation(email: string, paymentDetails: any) {
     const subject = 'Ödemeniz Onaylandı';
-    const content = this.getBaseTemplate(`
-      <h2>Ödemeniz Başarıyla Gerçekleşti!</h2>
-      <p>Ödemeniz başarıyla işleme alındı.</p>
-      
-      <div class="highlight">
-        <h3>Ödeme Detayları</h3>
-        <p>Ödeme Numarası: #${paymentDetails.id}</p>
-        <p>Tutar: ${paymentDetails.amount} TL</p>
-      </div>
+    const content = `Ödeme Numarası: #${paymentDetails.id}\nTutar: ${paymentDetails.amount} TL`;
 
-      <p>Siparişiniz en kısa sürede hazırlanacak ve kargoya verilecektir.</p>
-      <a href="#" class="button">Siparişimi Takip Et</a>
-    `);
+    const emailRecord = await this.trackEmail({
+      subject,
+      content,
+      recipient: email,
+      type: 'PAYMENT_CONFIRMATION',
+    });
 
-    try {
-      await this.mailerService.sendMail({
-        to: email,
-        subject,
-        html: content,
-      });
+    this.mailClient.emit('send_payment_confirmation', {
+      email,
+      subject,
+      content: this.getBaseTemplate(`
+        <h2>Ödemeniz Başarıyla Gerçekleşti!</h2>
+        <p>Ödemeniz başarıyla işleme alındı.</p>
+        
+        <div class="highlight">
+          <h3>Ödeme Detayları</h3>
+          <p>Ödeme Numarası: #${paymentDetails.id}</p>
+          <p>Tutar: ${paymentDetails.amount} TL</p>
+        </div>
 
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: email,
-        type: 'PAYMENT_CONFIRMATION',
-      });
-    } catch (error) {
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: email,
-        type: 'PAYMENT_CONFIRMATION',
-        status: 'FAILED',
-      });
-      throw error;
-    }
+        <p>Siparişiniz en kısa sürede hazırlanacak ve kargoya verilecektir.</p>
+        <a href="#" class="button">Siparişimi Takip Et</a>
+      `),
+      emailId: emailRecord.id,
+    });
+
+    return emailRecord.id;
   }
 
   async sendRefundConfirmation(email: string, refundDetails: any) {
     const subject = 'İade İşleminiz Onaylandı';
-    const content = this.getBaseTemplate(`
-      <h2>İade İşleminiz Tamamlandı</h2>
-      <p>İade talebiniz başarıyla işleme alındı.</p>
-      
-      <div class="highlight">
-        <h3>İade Detayları</h3>
-        <p>Sipariş Numarası: #${refundDetails.orderId}</p>
-        <p>İade Tutarı: ${refundDetails.amount} TL</p>
-      </div>
+    const content = `Sipariş Numarası: #${refundDetails.orderId}\nİade Tutarı: ${refundDetails.amount} TL`;
 
-      <p>İade tutarı 3-5 iş günü içerisinde hesabınıza yatırılacaktır.</p>
-      <a href="#" class="button">İade Durumunu Kontrol Et</a>
-    `);
+    const emailRecord = await this.trackEmail({
+      subject,
+      content,
+      recipient: email,
+      type: 'REFUND_CONFIRMATION',
+    });
 
-    try {
-      await this.mailerService.sendMail({
-        to: email,
-        subject,
-        html: content,
-      });
+    this.mailClient.emit('send_refund_confirmation', {
+      email,
+      subject,
+      content: this.getBaseTemplate(`
+        <h2>İade İşleminiz Tamamlandı</h2>
+        <p>İade talebiniz başarıyla işleme alındı.</p>
+        
+        <div class="highlight">
+          <h3>İade Detayları</h3>
+          <p>Sipariş Numarası: #${refundDetails.orderId}</p>
+          <p>İade Tutarı: ${refundDetails.amount} TL</p>
+        </div>
 
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: email,
-        type: 'REFUND_CONFIRMATION',
-      });
-    } catch (error) {
-      await this.trackEmail({
-        subject,
-        content,
-        recipient: email,
-        type: 'REFUND_CONFIRMATION',
-        status: 'FAILED',
-      });
-      throw error;
-    }
+        <p>İade tutarı 3-5 iş günü içerisinde hesabınıza yatırılacaktır.</p>
+        <a href="#" class="button">İade Durumunu Kontrol Et</a>
+      `),
+      emailId: emailRecord.id,
+    });
+
+    return emailRecord.id;
   }
 
   async sendBulkEmail(subject: string, content: string) {
-    const formattedContent = this.formatContent(content);
-    const htmlContent = this.getBaseTemplate(formattedContent);
     const customers = await this.prisma.customer.findMany({
       select: {
         id: true,
@@ -301,48 +256,79 @@ export class MailService {
       },
     });
 
-    const results = await Promise.allSettled(
-      customers.map(async (customer) => {
-        try {
-          await this.mailerService.sendMail({
-            to: customer.email,
-            subject,
-            html: htmlContent,
-          });
-
-          await this.trackEmail({
-            subject,
-            content: htmlContent,
-            recipient: customer.email,
-            type: 'BULK',
-            customerId: customer.id,
-          });
-
-          return { success: true, email: customer.email };
-        } catch (error) {
-          await this.trackEmail({
-            subject,
-            content: htmlContent,
-            recipient: customer.email,
-            type: 'BULK',
-            customerId: customer.id,
-            status: 'FAILED',
-          });
-          return {
-            success: false,
-            email: customer.email,
-            error: error.message,
-          };
-        }
-      }),
+    const emailRecords = await Promise.all(
+      customers.map((customer) =>
+        this.trackEmail({
+          subject,
+          content,
+          recipient: customer.email,
+          type: 'BULK',
+          customerId: customer.id,
+        }),
+      ),
     );
+
+    const htmlContent = this.getBaseTemplate(this.formatContent(content));
+    customers.forEach((customer, index) => {
+      this.mailClient.emit('send_bulk_email', {
+        email: customer.email,
+        subject,
+        content: htmlContent,
+        customerId: customer.id,
+        emailId: emailRecords[index].id,
+      });
+    });
 
     return {
       total: customers.length,
-      successful: results.filter((r) => r.status === 'fulfilled').length,
-      failed: results.filter((r) => r.status === 'rejected').length,
-      details: results,
+      message: 'Bulk email request received',
     };
+  }
+
+  private async handleEmailSending(data: {
+    email: string;
+    subject: string;
+    content: string;
+    emailId: number;
+  }) {
+    try {
+      await this.mailerService.sendMail({
+        to: data.email,
+        subject: data.subject,
+        html: data.content,
+      });
+
+      await this.prisma.email.update({
+        where: { id: data.emailId },
+        data: { status: 'SENT' },
+      });
+    } catch (error) {
+      await this.prisma.email.update({
+        where: { id: data.emailId },
+        data: { status: 'FAILED' },
+      });
+      throw error;
+    }
+  }
+
+  async handleCustomEmail(data: any) {
+    return this.handleEmailSending(data);
+  }
+
+  async handleOrderConfirmationEmail(data: any) {
+    return this.handleEmailSending(data);
+  }
+
+  async handlePaymentConfirmationEmail(data: any) {
+    return this.handleEmailSending(data);
+  }
+
+  async handleRefundConfirmationEmail(data: any) {
+    return this.handleEmailSending(data);
+  }
+
+  async handleBulkEmail(data: any) {
+    return this.handleEmailSending(data);
   }
 
   async getEmailHistory(customerId?: number) {

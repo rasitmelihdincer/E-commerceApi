@@ -24,7 +24,6 @@ export class ProductRepository {
       },
     });
 
-    // Entity mapleme
     const data = products.map((product) => ProductMapper.toEntity(product));
 
     return {

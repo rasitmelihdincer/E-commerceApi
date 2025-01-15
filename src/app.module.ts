@@ -27,6 +27,7 @@ import { AdminModule } from './admin/admin.module';
 import { OrderModule } from './order/order.module';
 import { PaymentModule } from './payment/payment.module';
 import { MailModule } from './mail/mail.module';
+import { RefundModule } from './refund/refund.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { MailModule } from './mail/mail.module';
     OrderModule,
     PaymentModule,
     MailModule,
+    RefundModule,
   ],
   controllers: [AppController],
   providers: [
