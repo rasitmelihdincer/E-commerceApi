@@ -74,12 +74,6 @@ export class PaymentController {
     );
   }
 
-  @Get('token')
-  @ApiOperation({ summary: 'PayBull token al' })
-  async getPaybullToken() {
-    return await this.paymentService.getPaybullToken();
-  }
-
   @Get('result/success')
   @ApiOperation({ summary: 'Başarılı ödeme sonucu' })
   async handlePaymentSuccess(@Query() queryParams: any) {

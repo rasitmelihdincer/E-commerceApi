@@ -121,11 +121,18 @@ model Category {
   products Product[]
 }
 
+enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
 model Order {
   id         Int         @id @default(autoincrement())
   customerId Int
   addressId  Int
-  status     String      @default("PENDING")
+  status     OrderStatus @default(PENDING)
   totalPrice Decimal     @default(0.0)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @default(now()) @updatedAt
@@ -146,18 +153,25 @@ model OrderItem {
   RefundRequest RefundRequest[]
 }
 
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
 model Payment {
-  id            Int      @id @default(autoincrement())
+  id            Int           @id @default(autoincrement())
   orderId       Int
-  order         Order    @relation(fields: [orderId], references: [id])
-  status        String
-  amount        Decimal  @default(0.0)
-  currency      String   @default("TRY")
-  installments  Int      @default(1)
+  order         Order         @relation(fields: [orderId], references: [id])
+  status        PaymentStatus @default(PENDING)
+  amount        Decimal       @default(0.0)
+  currency      String        @default("TRY")
+  installments  Int           @default(1)
   paybullData   Json?
   transactionId String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @default(now()) @updatedAt
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @default(now()) @updatedAt
 }
 
 enum EmailStatus {

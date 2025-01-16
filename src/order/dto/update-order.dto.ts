@@ -1,4 +1,16 @@
-import { PartialType } from '@nestjs/swagger';
-import { CreateOrderDto } from './create-order.dto';
+import { IsOptional, IsInt, IsEnum, IsNumber } from 'class-validator';
+import { OrderStatus } from '@prisma/client';
 
-export class UpdateOrderDto extends PartialType(CreateOrderDto) {}
+export class UpdateOrderDto {
+  @IsOptional()
+  @IsEnum(OrderStatus)
+  status?: OrderStatus;
+
+  @IsOptional()
+  @IsInt()
+  addressId?: number;
+
+  @IsOptional()
+  @IsNumber()
+  totalPrice?: number;
+}

@@ -13,9 +13,7 @@ export interface PayBullRequest extends Create3DDto {
 }
 
 export interface IPaymentProvider {
-  getToken(): Promise<string>;
-  create3DForm(data: PayBullRequest): Promise<any>;
+  create3DForm(data: any): Promise<any>;
   checkPaymentStatus(invoiceId: string): Promise<any>;
-  getMerchantKey(): string;
-  getAppSecret(): string;
+  refund(amount: number, orderId: number): Promise<any>;
 }

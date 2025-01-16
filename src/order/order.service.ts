@@ -10,6 +10,7 @@ import { OrderRepository } from './order.repository';
 import { CartRepository } from 'src/cart/cart.repository';
 import { OrderEntity } from './entities/order.entity';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrderService {
@@ -55,6 +56,25 @@ export class OrderService {
     );
   }
 
+  async updateOrder(
+    orderId: number,
+    data: {
+      status?: OrderStatus;
+      addressId?: number;
+      totalPrice?: number;
+    },
+  ): Promise<OrderEntity> {
+    const existingOrder = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!existingOrder) {
+      throw new NotFoundException(`Order with id ${orderId} not found`);
+    }
+
+    return this.orderRepository.update(orderId, data);
+  }
+
   async getOrderById(
     customerId: number,
     orderId: number,
@@ -68,21 +88,5 @@ export class OrderService {
 
   async getOrders(): Promise<OrderEntity[]> {
     return this.orderRepository.findAll();
-  }
-
-  async updateOrderStatus(
-    customerId: number,
-    orderId: number,
-    status: string,
-  ): Promise<OrderEntity> {
-    const updatedOrder = await this.orderRepository.updateStatus(
-      orderId,
-      customerId,
-      status,
-    );
-    if (!updatedOrder) {
-      throw new NotFoundException('Order not found');
-    }
-    return updatedOrder;
   }
 }

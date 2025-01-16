@@ -9,7 +9,12 @@ import { CreateRefundRequestDto } from './dto/create-refund-request.dto';
 import { UpdateRefundStatusDto } from './dto/update-refund-status.dto';
 import { PaymentService } from '../payment/payment.service';
 import { PrismaService } from '../shared/prisma/prisma.service';
-import { SessionType } from '@prisma/client';
+import {
+  OrderStatus,
+  PaymentStatus,
+  RefundStatus,
+  SessionType,
+} from '@prisma/client';
 
 interface UserInfo {
   id: number;
@@ -57,7 +62,7 @@ export class RefundService {
     }
 
     // Sipariş durumu kontrolü
-    if (orderItem.Order.status !== 'PAID') {
+    if (orderItem.Order.status !== OrderStatus.PAID) {
       throw new BadRequestException(
         `Order must be in PAID status to request refund`,
       );
@@ -67,7 +72,7 @@ export class RefundService {
       orderItem.id,
     );
     const totalRefundedQuantity = existingRefunds.reduce((sum, refund) => {
-      if (refund.status !== 'REJECTED') {
+      if (refund.status !== RefundStatus.REJECTED) {
         return sum + refund.quantity;
       }
       return sum;
@@ -126,7 +131,7 @@ export class RefundService {
       type: SessionType.ADMIN,
     }); // Admin olarak kontrol et
 
-    if (refundRequest.status !== 'PENDING') {
+    if (refundRequest.status !== RefundStatus.PENDING) {
       throw new BadRequestException(
         'This refund request has already been processed',
       );
@@ -137,7 +142,7 @@ export class RefundService {
       updateRefundStatusDto,
     );
 
-    if (updateRefundStatusDto.status === 'APPROVED') {
+    if (updateRefundStatusDto.status === RefundStatus.APPROVED) {
       const orderItem = await this.prisma.orderItem.findUnique({
         where: { id: refundRequest.orderItemId },
         include: {
@@ -145,7 +150,7 @@ export class RefundService {
             include: {
               payment: {
                 where: {
-                  status: 'COMPLETED',
+                  status: PaymentStatus.COMPLETED,
                 },
                 orderBy: {
                   createdAt: 'desc',
@@ -174,7 +179,7 @@ export class RefundService {
       // Sipariş durumunu güncelle
       await this.prisma.order.update({
         where: { id: orderItem.Order.id },
-        data: { status: 'REFUNDED' },
+        data: { status: OrderStatus.REFUNDED },
       });
     }
 

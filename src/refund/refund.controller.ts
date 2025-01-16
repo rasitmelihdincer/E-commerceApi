@@ -74,7 +74,6 @@ export class RefundController {
       throw new UnauthorizedException('User session not found');
     }
 
-    // Session tipine göre kontrol
     const isAdmin = req.session.type === SessionType.ADMIN;
 
     if (isAdmin) {
@@ -87,7 +86,6 @@ export class RefundController {
       return this.refundService.findAll();
     }
 
-    // Müşteri sadece kendi taleplerini görebilir
     return this.refundService.findByCustomerId(req.session.customerId);
   }
 

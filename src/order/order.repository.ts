@@ -4,6 +4,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { OrderEntity } from './entities/order.entity';
 import { CartItemEntity } from 'src/cart/entities/cart-item.entity';
+import { OrderStatus } from '@prisma/client';
 
 @Injectable()
 export class OrderRepository {
@@ -26,7 +27,7 @@ export class OrderRepository {
         data: {
           customerId,
           addressId,
-          status: 'PENDING',
+          status: OrderStatus.PENDING,
           totalPrice,
         },
       });
@@ -55,6 +56,24 @@ export class OrderRepository {
     });
   }
 
+  async update(
+    orderId: number,
+    data: {
+      status?: OrderStatus;
+      addressId?: number;
+      totalPrice?: number;
+    },
+  ): Promise<OrderEntity> {
+    const updatedOrder = await this.prisma.order.update({
+      where: { id: orderId },
+      data,
+      include: {
+        orderItems: true,
+      },
+    });
+    return this.mapToEntity(updatedOrder);
+  }
+
   async findById(id: number, customerId: number): Promise<OrderEntity | null> {
     const order = await this.prisma.order.findFirst({
       where: {
@@ -80,33 +99,6 @@ export class OrderRepository {
     });
 
     return orders.map((order) => this.mapToEntity(order));
-  }
-
-  async updateStatus(
-    orderId: number,
-    customerId: number,
-    status: string,
-  ): Promise<OrderEntity | null> {
-    const order = await this.prisma.order.findFirst({
-      where: {
-        id: orderId,
-        customerId,
-      },
-    });
-
-    if (!order) {
-      return null;
-    }
-
-    const updatedOrder = await this.prisma.order.update({
-      where: { id: orderId },
-      data: { status },
-      include: {
-        orderItems: true,
-      },
-    });
-
-    return this.mapToEntity(updatedOrder);
   }
 
   private mapToEntity(order: any): OrderEntity {

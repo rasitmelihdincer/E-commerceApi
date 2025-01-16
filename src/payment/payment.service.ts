@@ -1,24 +1,25 @@
-// src/payment/payment.service.ts
 import {
   Injectable,
   Logger,
   BadRequestException,
   NotFoundException,
 } from '@nestjs/common';
-import { PaybullProvider } from './providers/paybull/paybull.provider';
-import { Create3DDto } from './dto/create-payment.dto';
-import {
-  generateHashKey,
-  generateRefundHashKey,
-} from 'src/common/utils/hash-key-generate';
 import { PrismaService } from 'src/shared/prisma/prisma.service';
 import { CartRepository } from 'src/cart/cart.repository';
-import { PayBullRequest } from './providers/payment-provider.interface';
-import { Order, OrderItem, Payment, Product } from '@prisma/client';
+import { MailService } from '../mail/mail.service';
+import { Create3DDto } from './dto/create-payment.dto';
 import { Decimal } from '@prisma/client/runtime/library';
 import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import {
+  Payment,
+  Order,
+  OrderItem,
+  Product,
+  PaymentStatus,
+  OrderStatus,
+} from '@prisma/client';
 import axios from 'axios';
-import { MailService } from '../mail/mail.service';
+import { PaymentFactory } from './providers/payment-factory.service';
 
 interface OrderWithItems extends Order {
   orderItems: OrderItem[];
@@ -29,86 +30,44 @@ export class PaymentService {
   private readonly logger = new Logger(PaymentService.name);
 
   constructor(
-    private readonly paybullProvider: PaybullProvider,
     private readonly prisma: PrismaService,
     private readonly cartRepository: CartRepository,
     private readonly mailService: MailService,
+    private readonly paymentFactory: PaymentFactory,
   ) {}
 
-  async getPaybullToken(): Promise<string> {
-    return this.paybullProvider.getToken();
-  }
+  /**
+   * create3DSecurePayment
+   * Gelecekte farklı bir ödeme sağlayıcısı kullanılabilir.
+   * PaymentFactory içinden ilgili provider seçilir, create3DForm metodu çağrılır.
+   */
+  async create3DSecurePayment(dto: Create3DDto): Promise<any> {
+    // 1) Sipariş ve müşteri validasyonu
+    const order = await this.validateOrder(dto.orderId);
+    const customer = await this.getCustomer(order.customerId);
 
-  private async validateOrder(orderId: number): Promise<Order> {
-    const order = await this.prisma.order.findUnique({
-      where: { id: orderId },
-    });
+    // 2) Sipariş kalemleri ve ürünleri al
+    const { orderItems, products } = await this.getOrderItemsWithProducts(
+      order.id,
+    );
 
-    if (!order) {
-      throw new NotFoundException(`Order (id=${orderId}) not found`);
-    }
+    // 3) Stok kontrolü
+    this.checkStockAvailability(orderItems, products);
 
-    if (order.status === 'PAID') {
-      throw new BadRequestException(`Order already paid`);
-    }
+    // 4) Payment kaydı oluştur
+    const payment = await this.createPaymentRecord(
+      order.id,
+      order.totalPrice,
+      dto.currency_code,
+      dto.installments_number,
+    );
 
-    return order;
-  }
+    // 5) Provider seç ve ödeme isteği oluştur
+    const paymentProvider = this.paymentFactory.getProvider('paybull');
+    // ileride 'iyzico', 'stripe' vb. parametreli seçimler de yapılabilir
 
-  private async getCustomer(customerId: number) {
-    const customer = await this.prisma.customer.findUnique({
-      where: { id: customerId },
-    });
-
-    if (!customer) {
-      throw new NotFoundException(`Customer not found for order ${customerId}`);
-    }
-
-    return customer;
-  }
-
-  private async getOrderItemsWithProducts(orderId: number): Promise<{
-    orderItems: OrderItem[];
-    products: Product[];
-  }> {
-    const orderItems = await this.prisma.orderItem.findMany({
-      where: { orderId },
-    });
-
-    const products = await this.prisma.product.findMany({
-      where: {
-        id: {
-          in: orderItems.map((item) => item.productId),
-        },
-      },
-    });
-
-    return { orderItems, products };
-  }
-
-  private validateStock(orderItems: OrderItem[], products: Product[]) {
-    for (const item of orderItems) {
-      const product = products.find((p) => p.id === item.productId);
-      if (!product) {
-        throw new NotFoundException(`Product not found: ${item.productId}`);
-      }
-
-      if (product.productStock < item.quantity) {
-        throw new BadRequestException(
-          `Insufficient stock for product ${product.productName}. Available: ${product.productStock}, Requested: ${item.quantity}`,
-        );
-      }
-    }
-  }
-
-  private createPaymentRequest(
-    dto: Create3DDto,
-    order: Order,
-    customer: { firstName: string; lastName: string },
-    orderItems: OrderItem[],
-    products: Product[],
-  ): PayBullRequest {
-    return {
+    // 6) Provider’ın create3DForm metodunu çağır
+    const response = await paymentProvider.create3DForm({
       ...dto,
       invoice_id: `ORDER_${order.id}`,
       invoice_description: `Order #${order.id} Payment`,
@@ -128,81 +87,9 @@ export class PaymentService {
           };
         }),
       ),
-      hash_key: '',
-    };
-  }
-
-  private async createPaymentRecord(
-    orderId: number,
-    totalPrice: Decimal,
-    currency: string,
-    installments: number,
-  ): Promise<Payment> {
-    return this.prisma.payment.create({
-      data: {
-        orderId,
-        status: 'PENDING',
-        amount: totalPrice,
-        currency,
-        installments,
-      },
     });
-  }
 
-  private generatePaymentHashKey(paymentRequest: PayBullRequest): string {
-    const hashKey = generateHashKey(
-      paymentRequest.total.toFixed(2),
-      paymentRequest.installments_number.toString(),
-      paymentRequest.currency_code,
-      this.paybullProvider.getMerchantKey(),
-      paymentRequest.invoice_id,
-      this.paybullProvider.getAppSecret(),
-    );
-
-    this.logger.debug(
-      `Generated hash key for invoice ${paymentRequest.invoice_id}: ${hashKey}`,
-    );
-
-    return hashKey;
-  }
-
-  async create3DSecurePayment(dto: Create3DDto): Promise<any> {
-    // 1) Sipariş ve müşteri validasyonları
-    const order = await this.validateOrder(dto.orderId);
-    const customer = await this.getCustomer(order.customerId);
-
-    // 2) Sipariş kalemleri ve ürünleri al
-    const { orderItems, products } = await this.getOrderItemsWithProducts(
-      order.id,
-    );
-
-    // 3) Stok kontrolü
-    this.validateStock(orderItems, products);
-
-    // 4) PayBull için ödeme isteği hazırla
-    const paymentRequest = this.createPaymentRequest(
-      dto,
-      order,
-      customer,
-      orderItems,
-      products,
-    );
-
-    // 5) Payment kaydı oluştur
-    const payment = await this.createPaymentRecord(
-      order.id,
-      order.totalPrice,
-      dto.currency_code,
-      dto.installments_number,
-    );
-
-    // 6) Hash key oluştur ve ekle
-    paymentRequest.hash_key = this.generatePaymentHashKey(paymentRequest);
-
-    // 7) PayBull'a ödeme isteği gönder
-    const response = await this.paybullProvider.create3DForm(paymentRequest);
-
-    // 8) PayBull cevabını kaydet
+    // 7) PayBull cevabını payment kaydına ekle
     await this.prisma.payment.update({
       where: { id: payment.id },
       data: {
@@ -213,123 +100,10 @@ export class PaymentService {
     return response;
   }
 
-  private async processSuccessfulPayment(
-    paymentData: Payment,
-    order: OrderWithItems,
-    statusResponse: any,
-    resultData: any,
-  ) {
-    // Transaction başlat
-    await this.prisma.$transaction(async (prisma) => {
-      // Payment güncelle
-      let updatedPayment: Payment | null = null;
-      if (paymentData) {
-        updatedPayment = await prisma.payment.update({
-          where: { id: paymentData.id },
-          data: {
-            status: 'COMPLETED',
-            paybullData: statusResponse,
-            transactionId: resultData.transaction_id || undefined,
-          },
-        });
-      }
-
-      // Order güncelle
-      await prisma.order.update({
-        where: { id: order.id },
-        data: {
-          status: 'PAID',
-        },
-      });
-
-      // Stokları düşür
-      this.logger.debug(
-        `Payment: Found ${order.orderItems.length} items to update stock`,
-      );
-
-      for (const item of order.orderItems) {
-        const currentProduct = await prisma.product.findUnique({
-          where: { id: item.productId },
-        });
-
-        this.logger.debug(
-          `Payment: Updating stock for product ${item.productId} - Current stock: ${currentProduct.productStock}, Removing: ${item.quantity}`,
-        );
-
-        const updatedProduct = await prisma.product.update({
-          where: { id: item.productId },
-          data: {
-            productStock: {
-              decrement: item.quantity,
-            },
-          },
-        });
-
-        this.logger.debug(
-          `Payment: Stock updated for product ${item.productId} - New stock: ${updatedProduct.productStock}`,
-        );
-      }
-
-      // Cart ve CartItems'ları temizle
-      const cart = await prisma.cart.findFirst({
-        where: { customerId: order.customerId },
-        include: { cartItems: true },
-      });
-
-      if (cart) {
-        this.logger.debug(
-          `Payment: Cleaning up cart #${cart.id} with ${cart.cartItems.length} items`,
-        );
-
-        // Önce cart items'ları sil
-        await prisma.cartItem.deleteMany({
-          where: { cartId: cart.id },
-        });
-
-        this.logger.debug(`Payment: Cart  items deleted successfully`);
-      }
-
-      // Müşteri bilgilerini al
-      const customer = await prisma.customer.findFirst({
-        where: { id: order.customerId },
-      });
-
-      // Başarılı ödeme maili gönder
-      if (customer && updatedPayment) {
-        await this.mailService.sendPaymentConfirmation(customer.email, {
-          id: updatedPayment.id,
-          amount: updatedPayment.amount,
-          orderId: order.id,
-          orderItems: order.orderItems,
-        });
-      }
-    });
-  }
-
-  private formatPaymentResponse(resultData: any, statusResponse: any) {
-    return {
-      success: true,
-      message: 'Payment successful',
-      data: {
-        ...resultData,
-        amount: parseFloat(resultData.amount).toFixed(2),
-        installment: parseInt(resultData.installment),
-        status_code: parseInt(resultData.status_code),
-        payment_status: parseInt(resultData.payment_status),
-        merchant_commission: parseFloat(resultData.merchant_commission),
-        user_commission: parseFloat(resultData.user_commission),
-        merchant_commission_percentage: parseFloat(
-          resultData.merchant_commission_percentage,
-        ),
-        merchant_commission_fixed: parseFloat(
-          resultData.merchant_commission_fixed,
-        ),
-        error_code: parseInt(resultData.error_code),
-        status_check: statusResponse,
-      },
-    };
-  }
-
+  /**
+   * handlePaymentResult
+   * 3D ödeme sonucunu karşılayan fonksiyon.
+   */
   async handlePaymentResult(resultData: any, isSuccess: boolean): Promise<any> {
     this.logger.debug(
       `Processing payment result: ${JSON.stringify(resultData)}`,
@@ -348,13 +122,16 @@ export class PaymentService {
     const payment = await this.prisma.payment.findFirst({
       where: {
         orderId: orderId,
-        status: 'PENDING',
+        status: PaymentStatus.PENDING,
       },
     });
 
-    // 3) PayBull status check
+    // 3) Provider seçimi
+    const paymentProvider = this.paymentFactory.getProvider('paybull');
+
     try {
-      const statusResponse = await this.paybullProvider.checkPaymentStatus(
+      // 4) PayBull status check
+      const statusResponse = await paymentProvider.checkPaymentStatus(
         resultData.invoice_id,
       );
       this.logger.debug(
@@ -374,7 +151,8 @@ export class PaymentService {
           throw new Error(`Order not found: ${orderId}`);
         }
 
-        await this.processSuccessfulPayment(
+        // Başarılı ödeme işlenir
+        await this.handleSuccessfulPayment(
           payment,
           order,
           statusResponse,
@@ -388,7 +166,7 @@ export class PaymentService {
           await this.prisma.payment.update({
             where: { id: payment.id },
             data: {
-              status: 'FAILED',
+              status: PaymentStatus.FAILED,
               paybullData: statusResponse,
               transactionId: resultData.transaction_id || undefined,
             },
@@ -398,7 +176,7 @@ export class PaymentService {
         await this.prisma.order.update({
           where: { id: orderId },
           data: {
-            status: 'CANCELLED',
+            status: OrderStatus.CANCELLED,
           },
         });
 
@@ -424,6 +202,10 @@ export class PaymentService {
     }
   }
 
+  /**
+   * findAll
+   * Ödeme kayıtlarını pagine olarak getirir.
+   */
   async findAll(paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
@@ -476,6 +258,10 @@ export class PaymentService {
     };
   }
 
+  /**
+   * findOne
+   * Tek bir payment kaydı getirir.
+   */
   async findOne(id: number) {
     const payment = await this.prisma.payment.findUnique({
       where: { id },
@@ -509,6 +295,10 @@ export class PaymentService {
     };
   }
 
+  /**
+   * findByOrderId
+   * Bir order ID üzerindeki tüm payment kayıtlarını listeler.
+   */
   async findByOrderId(orderId: number) {
     const payments = await this.prisma.payment.findMany({
       where: { orderId },
@@ -545,6 +335,10 @@ export class PaymentService {
     return formattedPayments;
   }
 
+  /**
+   * findByCustomerId
+   * Bir müşteri ID'sine ait ödeme kayıtlarını sayfa sayfa getirir.
+   */
   async findByCustomerId(customerId: number, paginationDto: PaginationDto) {
     const { page = 1, limit = 10 } = paginationDto;
     const skip = (page - 1) * limit;
@@ -608,6 +402,10 @@ export class PaymentService {
     };
   }
 
+  /**
+   * getPaymentStatistics
+   * Ödeme istatistiklerini döner (toplam tutar, günlük tutar, başarı oranları vb.).
+   */
   async getPaymentStatistics() {
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
@@ -617,13 +415,13 @@ export class PaymentService {
       await Promise.all([
         // Toplam ödeme tutarı
         this.prisma.payment.aggregate({
-          where: { status: 'COMPLETED' },
+          where: { status: PaymentStatus.COMPLETED },
           _sum: { amount: true },
         }),
         // Bugünkü ödeme tutarı
         this.prisma.payment.aggregate({
           where: {
-            status: 'COMPLETED',
+            status: PaymentStatus.COMPLETED,
             createdAt: {
               gte: startOfDay,
               lte: endOfDay,
@@ -633,11 +431,11 @@ export class PaymentService {
         }),
         // Başarılı ödeme sayısı
         this.prisma.payment.count({
-          where: { status: 'COMPLETED' },
+          where: { status: PaymentStatus.COMPLETED },
         }),
         // Başarısız ödeme sayısı
         this.prisma.payment.count({
-          where: { status: 'FAILED' },
+          where: { status: PaymentStatus.FAILED },
         }),
       ]);
 
@@ -652,6 +450,10 @@ export class PaymentService {
     };
   }
 
+  /**
+   * refundPayment
+   * Tam para iadesi sürecini yönetir.
+   */
   async refundPayment(paymentId: number) {
     // 1) Payment ve Order bilgilerini al
     const payment = await this.prisma.payment.findUnique({
@@ -666,24 +468,27 @@ export class PaymentService {
     }
 
     // 2) Ödeme durumunu kontrol et
-    if (payment.status !== 'COMPLETED') {
+    if (payment.status !== PaymentStatus.COMPLETED) {
       throw new BadRequestException(`Payment #${paymentId} is not completed`);
     }
 
+    // 3) Provider seçimi
+    const paymentProvider = this.paymentFactory.getProvider('paybull');
+
+    // 4) İade işlemini gerçekleştir
     try {
-      // 3) PayBull üzerinden iade işlemini gerçekleştir
-      const refundResult = await this.paybullProvider.refund(
+      const refundResult = await paymentProvider.refund(
         Number(payment.amount),
         payment.orderId,
       );
 
-      // 4) İade başarılı ise kayıtları güncelle
+      // 5) İade başarılı ise transaction içinde kayıtları güncelle
       await this.prisma.$transaction(async (prisma) => {
         // Payment kaydını güncelle
         await prisma.payment.update({
           where: { id: paymentId },
           data: {
-            status: 'REFUNDED',
+            status: PaymentStatus.REFUNDED,
             paybullData: {
               ...(payment.paybullData as Record<string, any>),
               refund: refundResult,
@@ -695,22 +500,19 @@ export class PaymentService {
         await prisma.order.update({
           where: { id: payment.orderId },
           data: {
-            status: 'REFUNDED',
+            status: OrderStatus.REFUNDED,
           },
         });
 
         // Stokları geri ekle
         const orderItems = await prisma.orderItem.findMany({
           where: { orderId: payment.orderId },
-          include: {
-            product: true,
-          },
+          include: { product: true },
         });
 
         this.logger.debug(
           `Refund: Found ${orderItems.length} items to update stock`,
         );
-
         for (const item of orderItems) {
           this.logger.debug(
             `Refund: Updating stock for product ${item.productId} - Current stock: ${item.product.productStock}, Adding: ${item.quantity}`,
@@ -740,5 +542,212 @@ export class PaymentService {
       this.logger.error(`Refund Error => ${JSON.stringify(error)}`);
       throw new BadRequestException(error?.message || 'Refund failed');
     }
+  }
+
+  // ---------------------------------------------------
+  // Özel Yardımcı Metodlar
+  // ---------------------------------------------------
+  private async validateOrder(orderId: number): Promise<Order> {
+    const order = await this.prisma.order.findUnique({
+      where: { id: orderId },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order (id=${orderId}) not found`);
+    }
+
+    if (order.status === OrderStatus.PAID) {
+      throw new BadRequestException(`Order already paid`);
+    }
+    if (order.status === OrderStatus.REFUNDED) {
+      throw new BadRequestException(`Order already refunded`);
+    }
+    return order;
+  }
+
+  private async getCustomer(customerId: number) {
+    const customer = await this.prisma.customer.findUnique({
+      where: { id: customerId },
+    });
+
+    if (!customer) {
+      throw new NotFoundException(`Customer not found for order ${customerId}`);
+    }
+
+    return customer;
+  }
+
+  private async getOrderItemsWithProducts(orderId: number): Promise<{
+    orderItems: OrderItem[];
+    products: Product[];
+  }> {
+    const orderItems = await this.prisma.orderItem.findMany({
+      where: { orderId },
+    });
+
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: {
+          in: orderItems.map((item) => item.productId),
+        },
+      },
+    });
+
+    return { orderItems, products };
+  }
+
+  private checkStockAvailability(orderItems: OrderItem[], products: Product[]) {
+    for (const item of orderItems) {
+      const product = products.find((p) => p.id === item.productId);
+      if (!product) {
+        throw new NotFoundException(`Product not found: ${item.productId}`);
+      }
+
+      if (product.productStock < item.quantity) {
+        throw new BadRequestException(
+          `Insufficient stock for product ${product.productName}. Available: ${product.productStock}, Requested: ${item.quantity}`,
+        );
+      }
+    }
+  }
+
+  private async createPaymentRecord(
+    orderId: number,
+    totalPrice: Decimal,
+    currency: string,
+    installments: number,
+  ): Promise<Payment> {
+    return this.prisma.payment.create({
+      data: {
+        orderId,
+        status: PaymentStatus.PENDING,
+        amount: totalPrice,
+        currency,
+        installments,
+      },
+    });
+  }
+
+  /**
+   * Başarılı ödeme sonrası yapılacak tüm işlemler burada toplanır.
+   */
+  private async handleSuccessfulPayment(
+    paymentData: Payment,
+    order: OrderWithItems,
+    statusResponse: any,
+    resultData: any,
+  ) {
+    // Transaction başlat
+    await this.prisma.$transaction(async (prisma) => {
+      // Payment güncelle
+      let updatedPayment: Payment | null = null;
+      if (paymentData) {
+        updatedPayment = await prisma.payment.update({
+          where: { id: paymentData.id },
+          data: {
+            status: PaymentStatus.COMPLETED,
+            paybullData: statusResponse,
+            transactionId: resultData.transaction_id || undefined,
+          },
+        });
+      }
+
+      // Order güncelle
+      await prisma.order.update({
+        where: { id: order.id },
+        data: {
+          status: OrderStatus.PAID,
+        },
+      });
+
+      // Stokları düşür
+      this.logger.debug(
+        `Payment: Found ${order.orderItems.length} items to update stock`,
+      );
+
+      for (const item of order.orderItems) {
+        const currentProduct = await prisma.product.findUnique({
+          where: { id: item.productId },
+        });
+
+        this.logger.debug(
+          `Payment: Updating stock for product ${item.productId} - Current stock: ${currentProduct.productStock}, Removing: ${item.quantity}`,
+        );
+
+        const updatedProduct = await prisma.product.update({
+          where: { id: item.productId },
+          data: {
+            productStock: {
+              decrement: item.quantity,
+            },
+          },
+        });
+
+        this.logger.debug(
+          `Payment: Stock updated for product ${item.productId} - New stock: ${updatedProduct.productStock}`,
+        );
+      }
+
+      // Cart ve CartItems'ları temizle
+      const cart = await prisma.cart.findFirst({
+        where: { customerId: order.customerId },
+        include: { cartItems: true },
+      });
+
+      if (cart) {
+        this.logger.debug(
+          `Payment: Cleaning up cart #${cart.id} with ${cart.cartItems.length} items`,
+        );
+
+        // Önce cart items'ları sil
+        await prisma.cartItem.deleteMany({
+          where: { cartId: cart.id },
+        });
+
+        this.logger.debug(`Payment: Cart items deleted successfully`);
+      }
+
+      // Müşteri bilgilerini al
+      const customer = await prisma.customer.findFirst({
+        where: { id: order.customerId },
+      });
+
+      // Başarılı ödeme maili gönder
+      if (customer && updatedPayment) {
+        await this.mailService.sendPaymentConfirmation(customer.email, {
+          id: updatedPayment.id,
+          amount: updatedPayment.amount,
+          orderId: order.id,
+          orderItems: order.orderItems,
+        });
+      }
+    });
+  }
+
+  /**
+   * Ödemeye dair veriyi kullanıcıya dönerken formatlamaya yarar.
+   */
+  private formatPaymentResponse(resultData: any, statusResponse: any) {
+    return {
+      success: true,
+      message: 'Payment successful',
+      data: {
+        ...resultData,
+        amount: parseFloat(resultData.amount).toFixed(2),
+        installment: parseInt(resultData.installment),
+        status_code: parseInt(resultData.status_code),
+        payment_status: parseInt(resultData.payment_status),
+        merchant_commission: parseFloat(resultData.merchant_commission),
+        user_commission: parseFloat(resultData.user_commission),
+        merchant_commission_percentage: parseFloat(
+          resultData.merchant_commission_percentage,
+        ),
+        merchant_commission_fixed: parseFloat(
+          resultData.merchant_commission_fixed,
+        ),
+        error_code: parseInt(resultData.error_code),
+        status_check: statusResponse,
+      },
+    };
   }
 }

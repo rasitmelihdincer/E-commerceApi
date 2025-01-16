@@ -14,14 +14,15 @@ import { AuthGuard } from 'src/auth/guards/auth.guard';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SessionType } from '@prisma/client';
+import { UpdateOrderDto } from './dto/update-order.dto';
 
 @ApiTags('Orders')
 @Controller('orders')
+@UseGuards(AuthGuard)
 export class OrderController {
   constructor(private readonly orderService: OrderService) {}
 
   @Get()
-  @Roles(SessionType.CUSTOMER)
   @ApiOperation({ summary: 'Get all orders for the customer' })
   @ApiResponse({ status: 200, description: 'Returns all orders' })
   async list() {
@@ -36,27 +37,22 @@ export class OrderController {
     return await this.orderService.createOrder(req.session.customerId, dto);
   }
 
+  @Patch(':id')
+  @Roles(SessionType.ADMIN)
+  @ApiOperation({ summary: 'Update an order' })
+  @ApiResponse({ status: 200, description: 'Order updated successfully' })
+  async updateOrder(
+    @Param('id') orderId: number,
+    @Body() updateData: UpdateOrderDto,
+  ) {
+    return await this.orderService.updateOrder(orderId, updateData);
+  }
+
   @Get(':id')
   @Roles(SessionType.CUSTOMER)
   @ApiOperation({ summary: 'Get order by ID' })
   @ApiResponse({ status: 200, description: 'Returns the order' })
   async getOrderById(@Req() req, @Param('id') id: string) {
     return await this.orderService.getOrderById(req.session.customerId, +id);
-  }
-
-  @Patch(':id/status')
-  @Roles(SessionType.CUSTOMER)
-  @ApiOperation({ summary: 'Update order status' })
-  @ApiResponse({ status: 200, description: 'Order status updated' })
-  async updateOrderStatus(
-    @Req() req,
-    @Param('id') id: string,
-    @Body('status') status: string,
-  ) {
-    return await this.orderService.updateOrderStatus(
-      req.session.customerId,
-      +id,
-      status,
-    );
   }
 }

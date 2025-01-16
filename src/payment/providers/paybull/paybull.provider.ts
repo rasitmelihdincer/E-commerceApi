@@ -45,6 +45,10 @@ export class PaybullProvider implements IPaymentProvider {
     `);
   }
 
+  /**
+   * Örnek: Provider içinde merchant key, secret vb.
+   *        ihtiyaç duyulan diğer metotları da açabilirsiniz.
+   */
   getMerchantKey(): string {
     return this.merchantKey;
   }
@@ -61,6 +65,10 @@ export class PaybullProvider implements IPaymentProvider {
     return this.baseUrl;
   }
 
+  /**
+   * Paybull Token alma
+   * Tekrar tekrar token çağırmamak için basit bir cache (this.token) kullanıyoruz.
+   */
   async getToken(): Promise<string> {
     if (this.token) {
       return this.token;
@@ -105,11 +113,32 @@ export class PaybullProvider implements IPaymentProvider {
     }
   }
 
+  /**
+   * create3DForm
+   * Bu metot, PaymentService içindeki create3DSecurePayment sürecinde çağrılır.
+   */
   async create3DForm(data: PayBullRequest): Promise<any> {
     this.logger.debug(`Creating 3D payment with data: ${JSON.stringify(data)}`);
 
     try {
       const token = await this.getToken();
+
+      // create3DForm çağrılmadan önce hash_key oluşturulabilir.
+      // (Örnek: PayBull dokümantasyonuna göre bazen merchant side’da hash hazırlamak gerekir)
+      // Aşağıdaki gibi generateHashKey fonksiyonunu da entegre edebilirsiniz:
+      //
+      // const hash_key = generateHashKey(
+      //   data.total.toFixed(2),
+      //   data.installments_number?.toString() || '1',
+      //   data.currency_code,
+      //   this.getMerchantKey(),
+      //   data.invoice_id,
+      //   this.getAppSecret(),
+      // );
+      //
+      // data.hash_key = hash_key;
+      //
+      // Fakat bu örnekte PaymentService içerisinde de oluşturabilirsiniz.
 
       const parameters = {
         cc_holder_name: data.cc_holder_name,
@@ -172,6 +201,10 @@ export class PaybullProvider implements IPaymentProvider {
     }
   }
 
+  /**
+   * checkPaymentStatus
+   * Ödeme sonuç sorgulamak için PaymentService -> handlePaymentResult akışında çağrılır.
+   */
   async checkPaymentStatus(invoiceId: string): Promise<any> {
     const token = await this.getToken();
 
@@ -202,6 +235,10 @@ export class PaybullProvider implements IPaymentProvider {
     }
   }
 
+  /**
+   * refund
+   * Tam iadeyi yönetir. PaymentService -> refundPayment akışında çağrılır.
+   */
   async refund(amount: number, orderId: number): Promise<any> {
     const invoice_id = `ORDER_${orderId}`;
 
@@ -216,9 +253,8 @@ export class PaybullProvider implements IPaymentProvider {
     try {
       const token = await this.getToken();
 
-      // PayBull'un beklediği formatta request body hazırla
       const parameters = {
-        amount: '', // Boş string olarak gönder
+        amount: '',
         invoice_id,
         hash_key,
         app_id: this.appId,
