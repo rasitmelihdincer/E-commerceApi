@@ -7,5 +7,4 @@ export class CustomerDTO {
   email: string;
   createAt: Date;
   updatedAt: Date;
-  address: AddressDTO[];
 }

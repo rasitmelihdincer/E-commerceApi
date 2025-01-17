@@ -15,7 +15,6 @@ export class CartService {
   }
 
   async addCartItem(customerId: number, dto: CreateCartItemDto) {
-    // Önce cart'ı bul veya oluştur
     let cart = await this.cartRepository.findCartByCustomerId(customerId);
     if (!cart) {
       cart = await this.cartRepository.createCart(customerId);
@@ -30,7 +29,6 @@ export class CartService {
     itemId: number,
     dto: UpdateCartItemDto,
   ) {
-    // Önce cart item'ın bu kullanıcıya ait olduğunu kontrol et
     const cartItem = await this.cartRepository.findCartItemById(itemId);
     if (!cartItem) {
       throw new NotFoundException('Cart item not found');

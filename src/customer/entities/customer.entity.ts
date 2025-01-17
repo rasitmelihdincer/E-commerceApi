@@ -9,6 +9,5 @@ export class CustomerEntity {
     public hashedPassword: string,
     public createAt: Date,
     public updateAt: Date,
-    public addresses?: AddressEntity[],
   ) {}
 }

@@ -1,4 +1,8 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+} from '@nestjs/common';
 import { CustomerService } from 'src/customer/customer.service';
 import { AdminService } from 'src/admin/admin.service';
 import { SessionService } from './session/session.service';
@@ -6,6 +10,8 @@ import { LoginDto } from './dto/login.dto';
 import { compare } from 'bcrypt';
 import { SessionType } from '@prisma/client';
 import { JwtService } from '@nestjs/jwt';
+import { RegisterDto } from './dto/register.dto';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class AuthService {
@@ -86,5 +92,57 @@ export class AuthService {
       return null;
     }
     return sessionData;
+  }
+
+  async customerRegister(registerDto: RegisterDto) {
+    const existingCustomer = await this.customerService.findByEmail(
+      registerDto.email,
+    );
+    if (existingCustomer) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const customer = await this.customerService.create({
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      email: registerDto.email,
+      password: registerDto.password,
+    });
+
+    return {
+      message: 'Customer registered successfully',
+      data: {
+        id: customer.id,
+        firstName: customer.firstName,
+        lastName: customer.lastName,
+        email: customer.email,
+      },
+    };
+  }
+
+  async adminRegister(registerDto: RegisterDto) {
+    const existingAdmin = await this.adminService.findByEmail(
+      registerDto.email,
+    );
+    if (existingAdmin) {
+      throw new ConflictException('Email already exists');
+    }
+
+    const admin = await this.adminService.create({
+      firstName: registerDto.firstName,
+      lastName: registerDto.lastName,
+      email: registerDto.email,
+      password: registerDto.password,
+    });
+
+    return {
+      message: 'Admin registered successfully',
+      data: {
+        id: admin.id,
+        firstName: admin.firstName,
+        lastName: admin.lastName,
+        email: admin.email,
+      },
+    };
   }
 }

@@ -6,9 +6,10 @@ import { ProductController } from './product.controller';
 import { ProductRepository } from './product.repository';
 import { CategoryRepository } from 'src/category/category.repository';
 import { RedisModule } from 'src/shared/redis/redis.module';
+import { AuthModule } from 'src/auth/auth.module';
 
 @Module({
-  imports: [PrismaModule, RedisModule],
+  imports: [PrismaModule, RedisModule, AuthModule],
   providers: [ProductService, ProductRepository, CategoryRepository],
   controllers: [ProductController],
 })

@@ -16,8 +16,11 @@ import { CreateCartItemDto } from './dto/create-cart-item.dto';
 import { UpdateCartItemDto } from './dto/update-cart-item.dto';
 import { I18nService } from 'nestjs-i18n';
 import { SessionType } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+
 @UseGuards(AuthGuard)
 @Controller('cart')
+@Roles(SessionType.CUSTOMER)
 export class CartController {
   constructor(
     private readonly cartService: CartService,
@@ -26,17 +29,11 @@ export class CartController {
 
   @Get()
   async list(@Req() req) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can access their cart');
-    }
     return await this.cartService.list(req.session.customerId);
   }
 
   @Post('items')
   async addItem(@Req() req, @Body() dto: CreateCartItemDto) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can modify their cart');
-    }
     const cartItem = await this.cartService.addCartItem(
       req.session.customerId,
       dto,
@@ -54,9 +51,6 @@ export class CartController {
     @Param('id') id: string,
     @Body() dto: UpdateCartItemDto,
   ) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can modify their cart');
-    }
     const cartItem = await this.cartService.updateCartItem(
       req.session.customerId,
       +id,
@@ -68,9 +62,6 @@ export class CartController {
 
   @Delete('items/:id')
   async deleteItem(@Req() req, @Param('id') id: string) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can modify their cart');
-    }
     await this.cartService.deleteCartItem(req.session.customerId, +id);
     const message = await this.i18n.translate('test.CART_ITEM_REMOVED');
     return { message: message };
@@ -78,11 +69,6 @@ export class CartController {
 
   @Get(':cartId/items')
   async listItems(@Req() req, @Param('cartId') cartId: string) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException(
-        'Only customers can view their cart items',
-      );
-    }
     const items = await this.cartService.listCartItems(
       req.session.customerId,
       +cartId,

@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { I18nService } from 'nestjs-i18n';
@@ -14,9 +15,13 @@ import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
 import { PaginationDto } from 'src/shared/dto/pagination.dto';
+import { AuthGuard } from 'src/auth/guards/auth.guard';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+import { SessionType } from '@prisma/client';
 
 @ApiTags('Products')
 @Controller('products')
+@UseGuards(AuthGuard)
 export class ProductController {
   constructor(
     private readonly productService: ProductService,
@@ -32,6 +37,7 @@ export class ProductController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new product' })
+  @Roles(SessionType.ADMIN)
   @ApiResponse({ status: 201, description: 'Product created successfully' })
   async create(@Body() dto: CreateProductDto) {
     const createdProduct = await this.productService.create(dto);
@@ -43,6 +49,7 @@ export class ProductController {
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update existing product' })
+  @Roles(SessionType.ADMIN)
   @ApiResponse({ status: 200, description: 'Product updated successfully' })
   async update(@Param('id') id: string, @Body() dto: UpdateProductDto) {
     const updatedProduct = await this.productService.update(+id, dto);
@@ -55,6 +62,7 @@ export class ProductController {
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete product' })
+  @Roles(SessionType.ADMIN)
   @ApiResponse({ status: 200, description: 'Product deleted successfully' })
   async delete(@Param('id') id: string) {
     const deletedProduct = await this.productService.delete(+id);
@@ -67,6 +75,7 @@ export class ProductController {
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a specific product' })
+  @Roles(SessionType.ADMIN)
   @ApiResponse({ status: 200, description: 'Product details' })
   async get(@Param('id') id: string) {
     return this.productService.getById(+id);

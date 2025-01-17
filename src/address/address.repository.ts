@@ -10,6 +10,11 @@ import { AddressMapper } from './mappers/address.mapper';
 export class AddressRepository {
   constructor(private readonly prisma: PrismaService) {}
 
+  async list(): Promise<AddressEntity[]> {
+    const addresses = await this.prisma.address.findMany();
+    return addresses.map(AddressMapper.toEntity);
+  }
+
   async create(
     customerId: number,
     dto: CreateAddressDto,

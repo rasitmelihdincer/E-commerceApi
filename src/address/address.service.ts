@@ -13,6 +13,11 @@ export class AddressService {
     private readonly i18n: I18nService,
   ) {}
 
+  async list(): Promise<AddressDTO[]> {
+    const addresses = await this.addressRepository.list();
+    return addresses.map(AddressMapper.toDto);
+  }
+
   async create(customerId: number, dto: CreateAddressDto) {
     const entity = await this.addressRepository.create(customerId, dto);
     return AddressMapper.toDto(entity);
@@ -38,7 +43,7 @@ export class AddressService {
     await this.addressRepository.delete(id);
   }
 
-  async list(customerId: number): Promise<AddressDTO[]> {
+  async listByCustomerId(customerId: number): Promise<AddressDTO[]> {
     const addresses = await this.addressRepository.listByCustomerId(customerId);
     return addresses.map(AddressMapper.toDto);
   }

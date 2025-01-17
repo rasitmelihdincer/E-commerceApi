@@ -1,69 +1,114 @@
 import {
-  Body,
   Controller,
-  Delete,
   Get,
-  Param,
-  Patch,
   Post,
-  Req,
+  Body,
+  Patch,
+  Param,
+  Delete,
   UseGuards,
+  ForbiddenException,
+  Req,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { CustomerService } from './customer.service';
 import { CreateCustomerDto } from './dto/create-customer.dto';
 import { UpdateCustomerDto } from './dto/update-customer.dto';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { CustomerDTO } from './dto/customer.dto';
 import { AuthGuard } from 'src/auth/guards/auth.guard';
-import { I18nService } from 'nestjs-i18n';
-//customer
+import { SessionType } from '@prisma/client';
+import { Roles } from 'src/auth/decorators/roles.decorator';
+
+@ApiTags('Customers')
 @Controller('customers')
+@UseGuards(AuthGuard)
 export class CustomerController {
-  constructor(
-    private readonly customerService: CustomerService,
-    private readonly i18n: I18nService,
-  ) {}
+  constructor(private readonly customerService: CustomerService) {}
 
   @Get()
-  async list() {
-    return this.customerService.list();
+  @ApiOperation({
+    summary: 'Get all customers (Admin) or current customer (Customer)',
+  })
+  @ApiResponse({ status: 200, type: [CustomerDTO] })
+  async list(@Req() req) {
+    if (req.session.type === SessionType.ADMIN) {
+      return {
+        data: await this.customerService.list(),
+      };
+    } else {
+      const customer = await this.customerService.findById(
+        req.session.customerId,
+      );
+      return {
+        data: [customer],
+      };
+    }
   }
 
   @Post()
-  async create(@Body() dto: CreateCustomerDto) {
-    const create = await this.customerService.create(dto);
-    const message = await this.i18n.translate('test.CUSTOMER_CREATED');
+  @Roles(SessionType.ADMIN)
+  @ApiOperation({ summary: 'Create a new customer (Admin only)' })
+  @ApiResponse({ status: 201, type: CustomerDTO })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only admins can create customers',
+  })
+  async create(@Body() createCustomerDto: CreateCustomerDto) {
     return {
-      message: message,
-      customer: create,
+      message: 'Customer created successfully',
+      data: await this.customerService.create(createCustomerDto),
+    };
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Get customer by ID' })
+  @ApiResponse({ status: 200, type: CustomerDTO })
+  async findOne(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    if (
+      req.session.type !== SessionType.ADMIN &&
+      req.session.customerId !== id
+    ) {
+      throw new ForbiddenException('You can only view your own profile');
+    }
+    return {
+      data: await this.customerService.findById(id),
     };
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateCustomerDto) {
-    const update = await this.customerService.update(+id, dto);
-    const message = await this.i18n.translate('test.CUSTOMER_UPDATED');
+  @ApiOperation({ summary: 'Update customer' })
+  @ApiResponse({ status: 200, type: CustomerDTO })
+  async update(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() updateCustomerDto: UpdateCustomerDto,
+    @Req() req,
+  ) {
+    if (
+      req.session.type !== SessionType.ADMIN &&
+      req.session.customerId !== id
+    ) {
+      throw new ForbiddenException('You can only update your own profile');
+    }
+
     return {
-      message: message,
-      customer: update,
+      message: 'Customer updated successfully',
+      data: await this.customerService.update(id, updateCustomerDto),
     };
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    await this.customerService.delete(+id);
-    const message = await this.i18n.translate('test.CUSTOMER_DELETED');
+  @ApiOperation({ summary: 'Delete customer' })
+  @ApiResponse({ status: 200 })
+  async remove(@Param('id', ParseIntPipe) id: number, @Req() req) {
+    // Sadece admin müşteri silebilir
+    if (req.session.type !== SessionType.ADMIN) {
+      throw new ForbiddenException('Only admins can delete customers');
+    }
+
+    await this.customerService.delete(id);
     return {
-      message: message,
+      message: 'Customer deleted successfully',
     };
-  }
-
-  @UseGuards(AuthGuard)
-  @Get('/profile')
-  getProfile(@Req() req) {
-    return { message: 'Protected route', userId: req.user.id };
-  }
-
-  @Get(':id')
-  async show(@Param('id') id: string) {
-    return await this.customerService.show(+id);
   }
 }

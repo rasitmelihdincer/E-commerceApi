@@ -88,4 +88,12 @@ export class CustomerService {
   async findByEmail(email: string): Promise<CustomerEntity | null> {
     return this.customerRepository.findByEmail(email);
   }
+
+  async findById(id: number): Promise<CustomerDTO> {
+    const customer = await this.customerRepository.findById(id);
+    if (!customer) {
+      throw new NotFoundException('Customer not found');
+    }
+    return CustomerMapper.toDto(customer);
+  }
 }

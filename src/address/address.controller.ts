@@ -27,17 +27,14 @@ export class AddressController {
 
   @Get()
   async list(@Req() req) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can access addresses');
+    if (req.session.type == SessionType.CUSTOMER) {
+      return await this.addressService.listByCustomerId(req.session.customerId);
     }
-    return await this.addressService.list(req.session.customerId);
+    return await this.addressService.list();
   }
 
   @Post()
   async create(@Req() req, @Body() dto: CreateAddressDto) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can access addresses');
-    }
     const address = await this.addressService.create(
       req.session.customerId,
       dto,
@@ -55,9 +52,6 @@ export class AddressController {
     @Param('id') id: string,
     @Body() dto: UpdateAddressDto,
   ) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can access addresses');
-    }
     const address = await this.addressService.update(
       +id,
       req.session.customerId,
@@ -69,11 +63,16 @@ export class AddressController {
 
   @Delete(':id')
   async delete(@Req() req, @Param('id') id: string) {
-    if (req.session.type !== SessionType.CUSTOMER || !req.session.customerId) {
-      throw new UnauthorizedException('Only customers can access addresses');
-    }
     await this.addressService.delete(+id, req.session.customerId);
     const message = await this.i18n.translate('test.ADDRESS_DELETED');
     return { message: message };
+  }
+
+  @Get(':id')
+  async getById(@Req() req, @Param('id') id: string) {
+    if (req.session.type == SessionType.ADMIN) {
+      return await this.addressService.listByCustomerId(+id);
+    }
+    throw new UnauthorizedException('Only Admin can access addresses');
   }
 }

@@ -10,11 +10,7 @@ export class CustomerRepository {
   constructor(private readonly prisma: PrismaService) {}
 
   async list(): Promise<CustomerEntity[]> {
-    const customers = await this.prisma.customer.findMany({
-      include: {
-        addresses: true,
-      },
-    });
+    const customers = await this.prisma.customer.findMany();
 
     return customers.map(CustomerMapper.toEntity);
   }

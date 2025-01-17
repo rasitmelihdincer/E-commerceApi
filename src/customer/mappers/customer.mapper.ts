@@ -36,14 +36,10 @@ export class CustomerMapper {
       customer.hashedPassword,
       customer.createAt,
       customer.updatedAt,
-      addressEntities,
     );
   }
 
   static toDto(entity: CustomerEntity): CustomerDTO {
-    const addressDTOs: AddressDTO[] = entity.addresses.map((a) =>
-      AddressMapper.toDto(a),
-    );
     return {
       id: entity.id,
       firstName: entity.firstName,
@@ -51,7 +47,6 @@ export class CustomerMapper {
       email: entity.email,
       createAt: entity.createAt,
       updatedAt: entity.updateAt,
-      address: addressDTOs,
     };
   }
 }

@@ -1,6 +1,7 @@
 import { Body, Controller, Post, Headers, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './dto/login.dto';
+import { RegisterDto } from './dto/register.dto';
 import { AuthGuard } from './guards/auth.guard';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { SessionType } from '@prisma/client';
@@ -9,6 +10,29 @@ import { SessionType } from '@prisma/client';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
+
+  @Post('customer/register')
+  @ApiOperation({ summary: 'Register a new customer' })
+  @ApiResponse({ status: 201, description: 'Customer registered successfully' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
+  async customerRegister(@Body() registerDto: RegisterDto) {
+    return this.authService.customerRegister(registerDto);
+  }
+
+  @Post('admin/register')
+  @UseGuards(AuthGuard)
+  @ApiOperation({
+    summary: 'Register a new admin (Only admins can create other admins)',
+  })
+  @ApiResponse({ status: 201, description: 'Admin registered successfully' })
+  @ApiResponse({ status: 409, description: 'Email already exists' })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only admins can create other admins',
+  })
+  async adminRegister(@Body() registerDto: RegisterDto) {
+    return this.authService.adminRegister(registerDto);
+  }
 
   @Post('customer/login')
   @ApiOperation({ summary: 'Customer login' })

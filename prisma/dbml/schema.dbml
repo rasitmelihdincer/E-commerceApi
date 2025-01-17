@@ -1,0 +1,228 @@
+//// ------------------------------------------------------
+//// THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+//// ------------------------------------------------------
+
+Table Session {
+  id Int [pk, increment]
+  token String [unique, not null]
+  adminId Int
+  customerId Int
+  admin Admin
+  customer Customer
+  createdAt DateTime [default: `now()`, not null]
+  expiresAt DateTime
+}
+
+Table Customer {
+  id Int [pk, increment]
+  firstName String [not null]
+  lastName String [not null]
+  email String [unique, not null]
+  hashedPassword String [not null]
+  createAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+  addresses Address [not null]
+  carts Cart [not null]
+  Session Session [not null]
+  Email Email [not null]
+}
+
+Table Admin {
+  id Int [pk, increment]
+  firstName String [not null]
+  lastName String [not null]
+  email String [unique, not null]
+  hashedPassword String [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+  sessions Session [not null]
+}
+
+Table Address {
+  id Int [pk, increment]
+  customerId Int [not null]
+  customer Customer [not null]
+  country String [not null]
+  city String [not null]
+  district String [not null]
+  street String [not null]
+  postcode String [not null]
+  createAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+}
+
+Table Cart {
+  id Int [pk, increment]
+  customerId Int [not null]
+  addressId Int [not null]
+  customer Customer [not null]
+  cartItems CartItem [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+}
+
+Table CartItem {
+  id Int [pk, increment]
+  cartId Int [not null]
+  cart Cart [not null]
+  productId Int [not null]
+  product Product [not null]
+  quantity Int [not null, default: 1]
+  createdAt DateTime [default: `now()`, not null]
+}
+
+Table Product {
+  id Int [pk, increment]
+  productName String [unique, not null]
+  productDescription String [not null]
+  productCategoryId Int [not null]
+  productCategory Category
+  productStock Int [not null, default: 0]
+  price Decimal [not null, default: 0]
+  cartItems CartItem [not null]
+  orderItems OrderItem [not null]
+  images ProductImage [not null]
+  createAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+}
+
+Table ProductImage {
+  id Int [pk, increment]
+  imageUrl String [not null]
+  productId Int [not null]
+  product Product [not null]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table Category {
+  id Int [pk, increment]
+  name String [not null]
+  parentId Int
+  parent Category
+  children Category [not null]
+  products Product [not null]
+}
+
+Table Order {
+  id Int [pk, increment]
+  customerId Int [not null]
+  addressId Int [not null]
+  status OrderStatus [not null, default: 'PENDING']
+  totalPrice Decimal [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+  orderItems OrderItem [not null]
+  payment Payment [not null]
+}
+
+Table OrderItem {
+  id Int [pk, increment]
+  orderId Int [not null]
+  productId Int [not null]
+  quantity Int [not null, default: 1]
+  price Decimal [not null, default: 0]
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+  Order Order [not null]
+  product Product [not null]
+  RefundRequest RefundRequest [not null]
+}
+
+Table Payment {
+  id Int [pk, increment]
+  orderId Int [not null]
+  order Order [not null]
+  status PaymentStatus [not null, default: 'PENDING']
+  amount Decimal [not null, default: 0]
+  currency String [not null, default: 'TRY']
+  installments Int [not null, default: 1]
+  paybullData Json
+  transactionId String
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [default: `now()`, not null]
+}
+
+Table Email {
+  id Int [pk, increment]
+  subject String [not null]
+  content String [not null]
+  recipient String [not null]
+  type String [not null]
+  status EmailStatus [not null, default: 'PENDING']
+  customerId Int
+  customer Customer
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Table RefundRequest {
+  id Int [pk, increment]
+  orderItemId Int [not null]
+  orderItem OrderItem [not null]
+  quantity Int [not null]
+  description String
+  status RefundStatus [not null, default: 'PENDING']
+  createdAt DateTime [default: `now()`, not null]
+  updatedAt DateTime [not null]
+}
+
+Enum SessionType {
+  ADMIN
+  CUSTOMER
+}
+
+Enum OrderStatus {
+  PENDING
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+Enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+Enum EmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+Enum RefundStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
+}
+
+Ref: Session.adminId > Admin.id
+
+Ref: Session.customerId > Customer.id
+
+Ref: Address.customerId > Customer.id
+
+Ref: Cart.customerId > Customer.id
+
+Ref: CartItem.cartId > Cart.id
+
+Ref: CartItem.productId > Product.id
+
+Ref: Product.productCategoryId > Category.id
+
+Ref: ProductImage.productId > Product.id
+
+Ref: Category.parentId - Category.id
+
+Ref: OrderItem.orderId > Order.id
+
+Ref: OrderItem.productId > Product.id
+
+Ref: Payment.orderId > Order.id
+
+Ref: Email.customerId > Customer.id
+
+Ref: RefundRequest.orderItemId > OrderItem.id
